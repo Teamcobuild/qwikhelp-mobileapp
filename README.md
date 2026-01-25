@@ -48,3 +48,6 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+This app is a mobile app, I want to setup clerk and supabase for the authentication. its a role based authentication there is the provider and there's the customer. so on auth depends which screen to be redirected to wether the provider or customer side of the app (I believe you understand this.) there will be a buttom nav for navigation between screen. the fields to be used in the auth is: signup - first name, last name, email, password and confirm password or social login Login - email and password or social login. and I want to use the best folder structure recommended. the major milestone is the auth for now. after the splash screen the next thing is to choose if you want to be a provider or customer then it takes you to the auth page but still holding your choice somewhere to store it in the data base. I don't know if you understand this
