@@ -13,7 +13,7 @@ export const Typography = ({
 }: TypographyProps) => {
 
     // Define default styles for each variant
-    const baseStyle = "text-gray-800 font-regular tracking-tighter font-medium";
+    const baseStyle = "text-gray-800 font-regular tracking-tighter";
 
     const variants = {
         h1: "text-3xl font-bold mb-2",

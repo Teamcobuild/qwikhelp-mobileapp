@@ -23,7 +23,7 @@ export const Button = ({
     };
 
     // Text Styles
-    const baseText = "font-regular tracking-tighter font-bold text-lg";
+    const baseText = "font-bold tracking-tighter text-lg";
     const textVariants = {
         primary: "text-white",
         outline: "text-primary",
