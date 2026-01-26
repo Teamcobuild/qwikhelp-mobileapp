@@ -23,6 +23,7 @@ export default function SignUpForm() {
     const [loading, setLoading] = useState(false);
 
     const onSignUpPress = async () => {
+        if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) return Alert.alert("Required", "Please fill all fields");
         if (!isLoaded) return;
         if (!agreed) return Alert.alert("Required", "Please agree to the Terms & Conditions");
         if (form.password !== form.confirmPassword) return Alert.alert("Error", "Passwords do not match");
@@ -38,13 +39,14 @@ export default function SignUpForm() {
                 unsafeMetadata: { role }, // <--- Saving the role here!
             });
 
-            // 2. Start Email Verification
+            // ✅ Step 2: Send Email Verification
             await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
-            // 3. Move to Verify Screen
+            // Step 3: Navigate to OTP Screen - Clear stack to prevent back navigation
+            router.dismissAll();
             router.push({
                 pathname: "/(auth)/verify-email",
-                params: { email: form.email }
+                params: { email: form.email },
             });
 
         } catch (err: any) {
@@ -57,15 +59,15 @@ export default function SignUpForm() {
     return (
         <ScrollView className="flex-1 bg-white px-4 pt-20" showsVerticalScrollIndicator={false}>
             <Typography variant="h1" className="text-center font-bold mb-2">Create Account</Typography>
-            <Typography variant="caption" className="text-center mb-8 text-gray-500">
+            <Typography variant="body" className="text-center mb-8 text-gray-500">
                 Fill your information below or register with your social account
             </Typography>
 
-            <Input label="First Name" onChangeText={(t) => setForm({ ...form, firstName: t })} />
-            <Input label="Last Name" onChangeText={(t) => setForm({ ...form, lastName: t })} />
-            <Input label="Email" keyboardType="email-address" autoCapitalize="none" onChangeText={(t) => setForm({ ...form, email: t })} />
-            <Input label="Password" secureTextEntry onChangeText={(t) => setForm({ ...form, password: t })} />
-            <Input label="Confirm Password" secureTextEntry onChangeText={(t) => setForm({ ...form, confirmPassword: t })} />
+            <Input placeholder="First Name" onChangeText={(t) => setForm({ ...form, firstName: t })} />
+            <Input placeholder="Last Name" onChangeText={(t) => setForm({ ...form, lastName: t })} />
+            <Input placeholder="Email" keyboardType="email-address" autoCapitalize="none" onChangeText={(t) => setForm({ ...form, email: t })} />
+            <Input placeholder="Password" secureTextEntry onChangeText={(t) => setForm({ ...form, password: t })} />
+            <Input placeholder="Confirm Password" secureTextEntry onChangeText={(t) => setForm({ ...form, confirmPassword: t })} />
 
             {/* Terms Checkbox */}
             <View className="flex-row items-center mb-6">
@@ -82,9 +84,8 @@ export default function SignUpForm() {
 
             {/* Social Login Placeholder */}
             <View className="items-center mt-6 mb-10">
-                <Typography variant="caption" className="text-gray-400 mb-4">Or sign up with</Typography>
+                <Typography variant="body" className="text-gray-400 mb-4">Or sign up with</Typography>
                 <View className="flex-row gap-4">
-                    {/* You can add Social Login Buttons here later */}
                     <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-google" size={20} /></View>
                     <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-apple" size={20} /></View>
                 </View>

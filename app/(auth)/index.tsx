@@ -24,7 +24,7 @@ export default function RoleSelectScreen() {
                 />
             </View>
 
-            <Typography variant="h2" className="mb-8">Sign Up</Typography>
+            <Typography variant="h1" className="mb-8">Sign Up</Typography>
 
             <View className="w-full gap-y-4">
                 {/* Customer Button */}
