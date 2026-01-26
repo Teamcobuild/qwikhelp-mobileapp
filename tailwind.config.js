@@ -12,6 +12,10 @@ module.exports = {
         surface: "#A1A1A1",
         surfacedark: "#333333",
       },
+      fontFamily: {
+        regular: ["Satoshi-Regular"],
+        bold: ["Satoshi-Bold"],
+      },
     },
   },
   plugins: [],
