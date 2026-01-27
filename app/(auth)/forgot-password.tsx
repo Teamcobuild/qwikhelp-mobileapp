@@ -58,7 +58,7 @@ export default function ForgotPassword() {
     };
 
     return (
-        <View className="flex-1 bg-white px-6 pt-12">
+        <View className="flex-1 bg-white px-4 pt-12">
             {/* ... Headers (same as before) ... */}
 
             {step === "email" && (

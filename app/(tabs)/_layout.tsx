@@ -1,23 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { Platform } from "react-native";
 
-export default function TabsLayout() {
+export default function TabLayout() {
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: "#2563EB", // Blue-600
-                tabBarInactiveTintColor: "#9CA3AF", // Gray-400
+                // 1. Fix the height and padding
                 tabBarStyle: {
-                    height: 60,
-                    paddingBottom: 8,
-                    paddingTop: 8,
-                    borderTopWidth: 1,
-                    borderTopColor: "#E5E7EB",
+                    backgroundColor: "white",
+                    borderTopWidth: 0, // Remove the ugly top line
+                    elevation: 0,      // Remove Android shadow for a cleaner look
+                    height: Platform.OS === 'ios' ? 85 : 60, // Taller on iOS for the home indicator
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 10, // Push content up on iOS
+                    paddingTop: 10,
                 },
+                // 2. Fix the Colors
+                tabBarActiveTintColor: "#2563EB", // Blue-600 (Your brand color)
+                tabBarInactiveTintColor: "#9CA3AF", // Gray-400
+
+                // 3. Fix the Text
                 tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: "600",
+                    fontFamily: "Satoshi-Bold", // Use your custom font!
+                    fontSize: 10,
+                    marginTop: -5, // Pull text closer to icon
                 },
             }}
         >
@@ -25,18 +32,19 @@ export default function TabsLayout() {
                 name="home"
                 options={{
                     title: "Home",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home" size={size} color={color} />
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
                     ),
                 }}
             />
 
+            {/* Swap History and Nearby if needed to match design order */}
             <Tabs.Screen
                 name="nearby"
                 options={{
                     title: "Nearby",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="location" size={size} color={color} />
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "location" : "location-outline"} size={24} color={color} />
                     ),
                 }}
             />
@@ -44,9 +52,9 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="history"
                 options={{
-                    title: "History",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="time" size={size} color={color} />
+                    title: "Booking History",
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "time" : "time-outline"} size={24} color={color} />
                     ),
                 }}
             />
@@ -55,8 +63,8 @@ export default function TabsLayout() {
                 name="account"
                 options={{
                     title: "Account",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="person" size={size} color={color} />
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
                     ),
                 }}
             />
@@ -65,7 +73,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    href: null, // This hides it from the tab bar
+                    href: null, // This prevents it from showing in the tab bar
                 }}
             />
         </Tabs>

@@ -31,7 +31,7 @@ export default function AccountScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false}>
+            <ScrollView className="px-4 pt-6" showsVerticalScrollIndicator={false}>
                 {/* Profile Header */}
                 <View className="items-center mb-8">
                     <Image

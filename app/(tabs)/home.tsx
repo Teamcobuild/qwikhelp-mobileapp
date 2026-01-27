@@ -10,7 +10,7 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            <ScrollView className="px-6 pt-4" showsVerticalScrollIndicator={false}>
+            <ScrollView className="px-4 pt-4" showsVerticalScrollIndicator={false}>
 
                 {/* --- HEADER --- */}
                 <View className="flex-row items-center justify-between mb-8">
@@ -23,9 +23,8 @@ export default function HomeScreen() {
 
                         {/* User Welcome Text */}
                         <View>
-                            <Typography variant="caption" className="text-gray-500">Welcome,</Typography>
                             <Typography variant="h2" className="text-xl font-bold text-gray-900">
-                                {user?.firstName || "User"} 👋
+                                Welcome, {user?.firstName || "User"} 👋
                             </Typography>
                         </View>
                     </View>

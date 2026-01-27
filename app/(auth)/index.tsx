@@ -15,7 +15,6 @@ export default function RoleSelectScreen() {
 
     return (
         <View className="flex-1 bg-white px-4 justify-center items-center">
-            {/* Logo Placeholder */}
             <View className="items-center mb-10">
                 <Image
                     source={require("../../assets/images/qwikhelp-logoicon.png")}

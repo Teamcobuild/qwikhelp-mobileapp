@@ -43,7 +43,7 @@ export default function VerifyEmail() {
     };
 
     return (
-        <View className="flex-1 bg-white px-6 justify-center">
+        <View className="flex-1 bg-white px-4 justify-center">
             <View className="items-center mb-8">
                 <Typography variant="h2">Verify your email</Typography>
                 <Typography variant="body" className="text-center mt-2 text-gray-500">

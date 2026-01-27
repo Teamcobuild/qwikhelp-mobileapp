@@ -44,7 +44,7 @@ export default function SignInScreen() {
     };
 
     return (
-        <View className="flex-1 bg-white px-6 pt-12 justify-center">
+        <View className="flex-1 bg-white px-4 pt-12 justify-center">
             <View className="items-center mb-10">
                 <Image
                     source={require("../../assets/images/qwikhelp-logoicon.png")}
