@@ -1,3 +1,4 @@
+import { ServiceCard } from "@/components/ui/ServiceCard";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -33,56 +34,23 @@ export default function AccountScreen() {
         <SafeAreaView className="flex-1 bg-gray-50">
             <ScrollView className="px-4 pt-6" showsVerticalScrollIndicator={false}>
                 {/* Profile Header */}
-                <View className="items-center mb-8">
+                <View className="flex flex-row items-center mb-6">
                     <Image
                         source={{ uri: user?.imageUrl }}
-                        className="w-24 h-24 rounded-full border-2 border-blue-600"
+                        className="w-12 h-12 rounded-full"
                     />
-                    <Typography variant="h1" className="mt-4 text-2xl font-bold">
-                        {user?.firstName} {user?.lastName}
-                    </Typography>
-                    <Typography variant="body" className="text-gray-500 mt-1">
-                        {user?.emailAddresses[0].emailAddress}
-                    </Typography>
+                    <View className="flex flex-col mx-4">
+                        <Typography variant="h1" className="text-2xl m-0 font-bold">
+                            {user?.firstName}{user?.lastName}
+                        </Typography>
+                        <Typography variant="body" className="text-gray-500">
+                            {user?.emailAddresses[0].emailAddress}
+                        </Typography>
+                    </View>
                 </View>
-
-                {/* Account Options */}
-                <View className="bg-white rounded-2xl p-2 mb-4">
-                    <MenuItem
-                        icon="person-outline"
-                        title="Edit Profile"
-                        onPress={() => console.log("Edit Profile")}
-                    />
-                    <MenuItem
-                        icon="card-outline"
-                        title="Payment Methods"
-                        onPress={() => console.log("Payment")}
-                    />
-                    <MenuItem
-                        icon="notifications-outline"
-                        title="Notifications"
-                        onPress={() => console.log("Notifications")}
-                    />
-                    <MenuItem
-                        icon="settings-outline"
-                        title="Settings"
-                        onPress={() => console.log("Settings")}
-                    />
-                </View>
-
-                {/* Support Section */}
-                <View className="bg-white rounded-2xl p-2 mb-4">
-                    <MenuItem
-                        icon="help-circle-outline"
-                        title="Help Center"
-                        onPress={() => console.log("Help")}
-                    />
-                    <MenuItem
-                        icon="shield-checkmark-outline"
-                        title="Privacy Policy"
-                        onPress={() => console.log("Privacy")}
-                    />
-                </View>
+                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="chatbubble-ellipses" title="Chat Support" description="You can chat with our customer support here" />
+                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="location" title="Location" description="You can see and edit your location here" />
+                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="settings" title="Settings" description="You can chat with our customer support here" />
 
                 {/* Logout Button */}
                 <TouchableOpacity

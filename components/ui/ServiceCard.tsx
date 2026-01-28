@@ -21,7 +21,7 @@ export const ServiceCard = ({ title, description, iconName, color = "bg-blue-100
             </View>
             <View className="flex-1">
                 <Typography variant="h2" className="text-lg font-bold text-gray-900">{title}</Typography>
-                <Typography variant="caption" className="text-gray-500 leading-5 mt-1">
+                <Typography variant="caption" className="text-gray-500 leading-5">
                     {description}
                 </Typography>
             </View>

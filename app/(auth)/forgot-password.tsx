@@ -1,3 +1,4 @@
+import { Typography } from "@/components/ui/Typography";
 import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -8,7 +9,6 @@ import { Input } from "../../components/ui/Input";
 export default function ForgotPassword() {
     const { signIn, isLoaded, setActive } = useSignIn();
     const router = useRouter();
-
     const [step, setStep] = useState<"email" | "code" | "password">("email");
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");
@@ -62,17 +62,20 @@ export default function ForgotPassword() {
             {/* ... Headers (same as before) ... */}
 
             {step === "email" && (
-                <>
-                    <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
-                    <Button title="Send Code" onPress={onSendCode} loading={loading} className="bg-blue-600 mt-4" />
-                </>
+                <View className="flex flex-col">
+                    <Typography variant="h2" className="text-center font-bold mb-4">Forgot Password</Typography>
+                    <Input placeholder="input your email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+                    <Button title="Send Code" onPress={onSendCode} loading={loading} className="bg-blue-600" />
+                </View>
             )}
 
             {step === "code" && (
                 <>
-                    <View className="w-full mb-6">
+                    <View className="w-full pb-2 pt-4">
+                        <Typography variant="h2" className="text-center font-bold mb-4">Verification</Typography>
+                        <Typography variant="body" className="text-center font-bold mb-4">We have sent a verification code to {email}</Typography>
                         <TextInput
-                            className="w-full h-14 border border-gray-300 rounded-lg text-center text-2xl tracking-widest"
+                            className="w-full h-14 border border-gray-300 rounded-lg text-center  text-2xl tracking-widest"
                             keyboardType="numeric"
                             maxLength={6}
                             value={code}
@@ -80,14 +83,14 @@ export default function ForgotPassword() {
                             placeholder="000000"
                         />
                     </View>
-                    {/* Logic Change: We just move UI to next step, no API call yet */}
                     <Button title="Next" onPress={() => setStep("password")} className="bg-blue-600" />
                 </>
             )}
 
             {step === "password" && (
                 <>
-                    <Input label="New Password" secureTextEntry value={password} onChangeText={setPassword} />
+                    <Typography variant="h2" className="text-center font-bold mb-4">New Password</Typography>
+                    <Input secureTextEntry value={password} onChangeText={setPassword} />
 
                     <Button title="Confirm Reset" onPress={onResetPassword} loading={loading} className="bg-blue-600 mt-4" />
 
