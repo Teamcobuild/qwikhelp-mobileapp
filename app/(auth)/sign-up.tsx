@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons"; // For the checkbox checkmark
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
-import { Button } from "../../components/ui/Button";
-import { Typography } from "../../components/ui/Typography";
+import { Button } from "@/components/ui/Button";
+import { Typography } from "@/components/ui/Typography";
 
 export default function SignUpForm() {
     const { isLoaded, signUp } = useSignUp();

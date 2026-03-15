@@ -13,6 +13,7 @@ export default function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     // 1. Send the OTP
@@ -31,10 +32,21 @@ export default function ForgotPassword() {
             setLoading(false);
         }
     };
+    const validateForm = () => {
+        if (!password || !confirmPassword) {
+            Alert.alert("Error", "Passwords cannot be empty");
+            return false;
+        }
+        if (confirmPassword !== password) {
+            Alert.alert("Error", "Passwords do not match");
+            return false
+        }
+        return true;
+    }
 
-    // 2. Submit EVERYTHING (Code + New Password)
+    // 2. Submit everything (Code + New Password)
     const onResetPassword = async () => {
-        if (!isLoaded) return;
+        if (!isLoaded || !validateForm) return;
         setLoading(true);
         try {
             const result = await signIn.attemptFirstFactor({
@@ -45,10 +57,10 @@ export default function ForgotPassword() {
 
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
-                Alert.alert("Success", "Password reset successfully!");
+                Alert.alert("Success", "Password Reset Successfully!");
                 router.replace("/(tabs)/home");
             } else {
-                Alert.alert("Error", "Something went wrong.");
+                Alert.alert("Error", "Something Went Wrong!");
             }
         } catch (err: any) {
             Alert.alert("Failed", err.errors[0]?.message || "Invalid Code");
@@ -59,8 +71,6 @@ export default function ForgotPassword() {
 
     return (
         <View className="flex-1 bg-white px-4 pt-12">
-            {/* ... Headers (same as before) ... */}
-
             {step === "email" && (
                 <View className="flex flex-col">
                     <Typography variant="h2" className="text-center font-bold mb-4">Forgot Password</Typography>
@@ -73,14 +83,14 @@ export default function ForgotPassword() {
                 <>
                     <View className="w-full pb-2 pt-4">
                         <Typography variant="h2" className="text-center font-bold mb-4">Verification</Typography>
-                        <Typography variant="body" className="text-center font-bold mb-4">We have sent a verification code to {email}</Typography>
+                        <Typography variant="body" className="text-center font-bold mb-4">We have sent a verification code to "{email}"</Typography>
                         <TextInput
                             className="w-full h-14 border border-gray-300 rounded-lg text-center  text-2xl tracking-widest"
                             keyboardType="numeric"
                             maxLength={6}
                             value={code}
                             onChangeText={setCode}
-                            placeholder="000000"
+                            placeholder="Input Code"
                         />
                     </View>
                     <Button title="Next" onPress={() => setStep("password")} className="bg-blue-600" />
@@ -90,7 +100,8 @@ export default function ForgotPassword() {
             {step === "password" && (
                 <>
                     <Typography variant="h2" className="text-center font-bold mb-4">New Password</Typography>
-                    <Input secureTextEntry value={password} onChangeText={setPassword} />
+                    <Input secureTextEntry value={password} onChangeText={setPassword} placeholder="Input Password" />
+                    <Input secureTextEntry value={confirmPassword} placeholder="Confirm Password" />
 
                     <Button title="Confirm Reset" onPress={onResetPassword} loading={loading} className="bg-blue-600 mt-4" />
 
