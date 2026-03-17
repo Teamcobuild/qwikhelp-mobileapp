@@ -31,7 +31,7 @@ export default function VerifyEmail() {
 
                 // Clear the navigation stack and go to home
                 router.dismissAll();
-                router.replace("/(tabs)/home");
+                router.replace("/(customer-tabs)/home");
             } else {
                 Alert.alert("Error", "Verification failed. Please try again.");
             }

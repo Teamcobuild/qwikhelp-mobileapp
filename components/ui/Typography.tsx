@@ -2,7 +2,7 @@ import { Text, TextProps } from "react-native";
 
 interface TypographyProps extends TextProps {
     variant?: "h1" | "h2" | "body" | "caption";
-    className?: string; // Allows you to add extra styles if needed
+    className?: string; // allows you to add extra styles if needed
 }
 
 export const Typography = ({

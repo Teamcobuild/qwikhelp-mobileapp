@@ -33,7 +33,7 @@ export default function SignInScreen() {
 
             // 3. Navigate to Home - Clear the entire stack to prevent back navigation
             router.dismissAll();
-            router.replace("/(tabs)/home");
+            router.replace("/(customer-tabs)/home");
 
         } catch (err: any) {
             // Handle errors (like "Incorrect password")
@@ -102,7 +102,7 @@ export default function SignInScreen() {
                 <Typography
                     variant="caption"
                     className="text-blue-600 font-bold"
-                    onPress={() => router.push("/(auth)")} // Go back to Role Select
+                    onPress={() => router.push("/role-select")} // Go back to Role Select
                 >
                     Sign Up
                 </Typography>

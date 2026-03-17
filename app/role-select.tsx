@@ -1,15 +1,26 @@
+// app/role-select.tsx
 import { Button } from "@/components/ui/Button";
 import { Typography } from "@/components/ui/Typography";
+import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from "expo-router";
 import { Image, View } from "react-native";
 
 export default function RoleSelectScreen() {
     const router = useRouter();
+    const { user } = useUser();
 
-    const handleSelect = (role: 'customer' | 'provider') => {
+    const handleSelect = async (role: 'customer' | 'provider') => {
+        // Save to Clerk immediately so _layout.tsx 
+        // always knows the role even mid-signup
+        if (user) {
+            await user.update({
+                unsafeMetadata: { role }
+            });
+        }
+
         router.push({
             pathname: "/(auth)/sign-up",
-            params: { role } // <--- Passing the role dynamically
+            params: { role }
         });
     };
 
@@ -17,7 +28,7 @@ export default function RoleSelectScreen() {
         <View className="flex-1 bg-white px-4 justify-center items-center">
             <View className="items-center mb-10">
                 <Image
-                    source={require("../../assets/images/qwikhelp-logoicon.png")}
+                    source={require("../assets/images/qwikhelp-logoicon.png")}
                     style={{ width: 120, height: 120 }}
                     resizeMode="contain"
                 />
@@ -26,18 +37,13 @@ export default function RoleSelectScreen() {
             <Typography variant="h1" className="mb-8">Sign Up</Typography>
 
             <View className="w-full gap-y-4">
-                {/* Customer Button */}
                 <Button
                     title="Customer"
                     onPress={() => handleSelect('customer')}
-                // className="bg-blue-600"
                 />
-
-                {/* Provider Button */}
                 <Button
                     title="Provider"
                     onPress={() => handleSelect('provider')}
-                // className="bg-blue-600"
                 />
             </View>
 

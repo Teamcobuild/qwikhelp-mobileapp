@@ -7,24 +7,20 @@ export default function TabLayout() {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                // 1. Fix the height and padding
                 tabBarStyle: {
                     backgroundColor: "white",
-                    borderTopWidth: 0, // Remove the ugly top line
-                    elevation: 0,      // Remove Android shadow for a cleaner look
-                    height: Platform.OS === 'ios' ? 85 : 60, // Taller on iOS for the home indicator
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10, // Push content up on iOS
+                    borderTopWidth: 0,
+                    elevation: 0,
+                    height: Platform.OS === 'ios' ? 85 : 60,
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
                     paddingTop: 10,
                 },
-                // 2. Fix the Colors
-                tabBarActiveTintColor: "#2563EB", // Blue-600 (Your brand color)
-                tabBarInactiveTintColor: "#9CA3AF", // Gray-400
-
-                // 3. Fix the Text
+                tabBarActiveTintColor: "#2563EB",
+                tabBarInactiveTintColor: "#9CA3AF",
                 tabBarLabelStyle: {
-                    fontFamily: "Satoshi-Bold", // Use your custom font!
+                    fontFamily: "Satoshi-Bold",
                     fontSize: 10,
-                    marginTop: -5, // Pull text closer to icon
+                    marginTop: -5,
                 },
             }}
         >
@@ -37,8 +33,6 @@ export default function TabLayout() {
                     ),
                 }}
             />
-
-            {/* Swap History and Nearby if needed to match design order */}
             <Tabs.Screen
                 name="nearby"
                 options={{
@@ -68,12 +62,10 @@ export default function TabLayout() {
                     ),
                 }}
             />
-
-            {/* Hide the index redirect from tabs */}
             <Tabs.Screen
                 name="index"
                 options={{
-                    href: null, // This prevents it from showing in the tab bar
+                    href: null,
                 }}
             />
         </Tabs>

@@ -6,37 +6,37 @@ import { ServiceCard } from "../../components/ui/ServiceCard";
 import { Typography } from "../../components/ui/Typography";
 
 export default function HomeScreen() {
-    const { user } = useUser(); // <--- Fetches the logged-in user data
+    const { user } = useUser(); // fetch the logged-in user data
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
             <ScrollView className="px-4 pt-4" showsVerticalScrollIndicator={false}>
 
-                {/* --- HEADER --- */}
+                {/* header */}
                 <View className="flex-row items-center justify-between mb-8">
                     <View className="flex-row items-center gap-3">
-                        {/* User Profile Image */}
+                        {/* user profile image */}
                         <Image
                             source={{ uri: user?.imageUrl }}
                             className="w-12 h-12 rounded-full border border-gray-200"
                         />
 
-                        {/* User Welcome Text */}
+                        {/* user welcome text */}
                         <View>
                             <Typography variant="h2" className="text-xl font-bold text-gray-900">
-                                Welcome, {user?.firstName || "User"} 👋
+                                Welcome, {user?.firstName || "User"}!
                             </Typography>
                         </View>
                     </View>
 
-                    {/* Notification Bell */}
+                    {/* notification bell */}
                     <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm">
                         <Ionicons name="notifications-outline" size={20} color="black" />
                     </TouchableOpacity>
                 </View>
 
 
-                {/* --- SERVICES LIST --- */}
+                {/* services list */}
                 <View className="pb-24">
                     <ServiceCard
                         title="Cooking"
@@ -81,7 +81,7 @@ export default function HomeScreen() {
 
             </ScrollView>
 
-            {/* --- FLOATING ACTION BUTTON (The Blue Sparkle) --- */}
+            {/* floating assistant button */}
             <TouchableOpacity
                 className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-300"
                 activeOpacity={0.8}

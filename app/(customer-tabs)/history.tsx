@@ -11,7 +11,7 @@ export default function HistoryScreen() {
                     Service History
                 </Typography>
 
-                {/* Placeholder Content */}
+                {/* placeholder */}
                 <View className="flex-1 items-center justify-center py-20">
                     <Ionicons name="time-outline" size={80} color="#D1D5DB" />
                     <Typography variant="h2" className="mt-4 text-gray-400">

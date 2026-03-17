@@ -13,7 +13,7 @@ export default function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");
     const [password, setPassword] = useState("");
-    const [confirmPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     // 1. Send the OTP
@@ -51,14 +51,14 @@ export default function ForgotPassword() {
         try {
             const result = await signIn.attemptFirstFactor({
                 strategy: "reset_password_email_code",
-                code, // We use the code collected in Step 2
-                password, // We use the password collected in Step 3
+                code, // using the code collected in Step 2
+                password, // using the password collected in Step 3
             });
 
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
                 Alert.alert("Success", "Password Reset Successfully!");
-                router.replace("/(tabs)/home");
+                router.replace("/(customer-tabs)/home");
             } else {
                 Alert.alert("Error", "Something Went Wrong!");
             }
@@ -101,7 +101,7 @@ export default function ForgotPassword() {
                 <>
                     <Typography variant="h2" className="text-center font-bold mb-4">New Password</Typography>
                     <Input secureTextEntry value={password} onChangeText={setPassword} placeholder="Input Password" />
-                    <Input secureTextEntry value={confirmPassword} placeholder="Confirm Password" />
+                    <Input secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm Password" />
 
                     <Button title="Confirm Reset" onPress={onResetPassword} loading={loading} className="bg-blue-600 mt-4" />
 

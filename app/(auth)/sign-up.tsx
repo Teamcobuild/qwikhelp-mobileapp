@@ -1,17 +1,20 @@
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Typography } from "@/components/ui/Typography";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons"; // For the checkbox checkmark
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
-import { Button } from "@/components/ui/Button";
-import { Typography } from "@/components/ui/Typography";
 
 export default function SignUpForm() {
     const { isLoaded, signUp } = useSignUp();
     const router = useRouter();
-    const { role } = useLocalSearchParams<{ role: string }>(); // Get role from previous screen
-
+    const params = useLocalSearchParams<{ role: string }>(); // Get role from previous screen
+    // Guard: ensure role is a plain string
+    const role = Array.isArray(params.role)
+        ? params.role[0]
+        : params.role;
     const [form, setForm] = useState({
         firstName: "",
         lastName: "",
@@ -27,7 +30,10 @@ export default function SignUpForm() {
         if (!isLoaded) return;
         if (!agreed) return Alert.alert("Required", "Please agree to the Terms & Conditions");
         if (form.password !== form.confirmPassword) return Alert.alert("Error", "Passwords do not match");
-
+        // Guard: role must exist
+        if (!role || !['customer', 'provider'].includes(role)) {
+            return Alert.alert("Error", "Invalid role. Please go back and select again.");
+        }
         setLoading(true);
         try {
             // 1. Create User
@@ -43,12 +49,10 @@ export default function SignUpForm() {
             await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
             // Step 3: Navigate to OTP Screen - Clear stack to prevent back navigation
-            router.dismissAll();
             router.push({
                 pathname: "/(auth)/verify-email",
                 params: { email: form.email },
             });
-
         } catch (err: any) {
             Alert.alert("Error", err.errors[0]?.message || "Something went wrong");
         } finally {

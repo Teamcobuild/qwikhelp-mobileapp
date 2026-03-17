@@ -48,9 +48,9 @@ export default function AccountScreen() {
                         </Typography>
                     </View>
                 </View>
-                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="chatbubble-ellipses" title="Chat Support" description="You can chat with our customer support here" />
-                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="location" title="Location" description="You can see and edit your location here" />
-                <ServiceCard onPress={() => router.push("/(tabs)/chat")} color="bg-white" iconName="settings" title="Settings" description="You can chat with our customer support here" />
+                <ServiceCard onPress={() => router.push("/(customer-tabs)/chat")} color="bg-white" iconName="chatbubble-ellipses" title="Chat Support" description="You can chat with our customer support here" />
+                <ServiceCard onPress={() => router.push("/(customer-tabs)/location")} color="bg-white" iconName="location" title="Location" description="You can see and edit your location here" />
+                <ServiceCard onPress={() => router.push("/(customer-tabs)/settings")} color="bg-white" iconName="settings" title="Settings" description="You can chat with our customer support here" />
 
                 {/* Logout Button */}
                 <TouchableOpacity
