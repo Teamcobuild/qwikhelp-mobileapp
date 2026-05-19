@@ -1,23 +1,15 @@
 // app/role-select.tsx
 import { Button } from "@/components/ui/Button";
 import { Typography } from "@/components/ui/Typography";
-import { useUser } from '@clerk/clerk-expo';
+// import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from "expo-router";
 import { Image, View } from "react-native";
 
 export default function RoleSelectScreen() {
     const router = useRouter();
-    const { user } = useUser();
+    // const { user } = useUser();
 
     const handleSelect = async (role: 'customer' | 'provider') => {
-        // Save to Clerk immediately so _layout.tsx 
-        // always knows the role even mid-signup
-        if (user) {
-            await user.update({
-                unsafeMetadata: { role }
-            });
-        }
-
         router.push({
             pathname: "/(auth)/sign-up",
             params: { role }

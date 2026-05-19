@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Typography } from "@/components/ui/Typography";
-import { useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons"; // For the checkbox checkmark
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -24,6 +24,7 @@ export default function SignUpForm() {
     });
     const [agreed, setAgreed] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { signOut } = useAuth();
 
     const onSignUpPress = async () => {
         if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) return Alert.alert("Required", "Please fill all fields");
@@ -36,6 +37,7 @@ export default function SignUpForm() {
         }
         setLoading(true);
         try {
+            await signOut();
             // 1. Create User
             await signUp.create({
                 firstName: form.firstName,
@@ -54,6 +56,14 @@ export default function SignUpForm() {
                 params: { email: form.email },
             });
         } catch (err: any) {
+            const errorCode = err.errors?.[0]?.code;
+
+            if (errorCode === 'session_exists') {
+                // Session exists — sign out and retry
+                await signOut();
+                onSignUpPress(); // retry once after signout
+                return;
+            }
             Alert.alert("Error", err.errors[0]?.message || "Something went wrong");
         } finally {
             setLoading(false);

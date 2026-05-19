@@ -1,10 +1,10 @@
-import { Typography } from "@/components/ui/Typography";
 import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, TextInput, View } from "react-native";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { Typography } from "../../components/ui/Typography"; // Verify this path matches your setup
 
 export default function ForgotPassword() {
     const { signIn, isLoaded, setActive } = useSignIn();
@@ -32,6 +32,7 @@ export default function ForgotPassword() {
             setLoading(false);
         }
     };
+
     const validateForm = () => {
         if (!password || !confirmPassword) {
             Alert.alert("Error", "Passwords cannot be empty");
@@ -39,14 +40,16 @@ export default function ForgotPassword() {
         }
         if (confirmPassword !== password) {
             Alert.alert("Error", "Passwords do not match");
-            return false
+            return false;
         }
         return true;
     }
 
     // 2. Submit everything (Code + New Password)
     const onResetPassword = async () => {
-        if (!isLoaded || !validateForm) return;
+        // FIX 1: Added () to validateForm so the gatekeeper actually runs
+        if (!isLoaded || !validateForm()) return;
+
         setLoading(true);
         try {
             const result = await signIn.attemptFirstFactor({
@@ -58,7 +61,9 @@ export default function ForgotPassword() {
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
                 Alert.alert("Success", "Password Reset Successfully!");
-                router.replace("/(customer-tabs)/home");
+
+                // FIX 2: Route to root so _layout.tsx sorts Customer vs Provider
+                router.replace("/");
             } else {
                 Alert.alert("Error", "Something Went Wrong!");
             }

@@ -1,6 +1,5 @@
-// app/(auth)/sign-in.tsx
-import { useSignIn } from "@clerk/clerk-expo";
-import { Ionicons } from "@expo/vector-icons"; // Ensure you have this installed
+import { useAuth, useSignIn } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Image, View } from "react-native";
@@ -10,6 +9,7 @@ import { Typography } from "../../components/ui/Typography";
 
 export default function SignInScreen() {
     const { signIn, setActive, isLoaded } = useSignIn();
+    const { signOut } = useAuth();
     const router = useRouter();
 
     const [email, setEmail] = useState("");
@@ -22,21 +22,23 @@ export default function SignInScreen() {
         setLoading(true);
 
         try {
-            // 1. Attempt Login
             const completeSignIn = await signIn.create({
                 identifier: email,
                 password,
             });
-
-            // 2. If successful, set the session active
-            await setActive({ session: completeSignIn.createdSessionId });
-
-            // 3. Navigate to Home - Clear the entire stack to prevent back navigation
-            router.dismissAll();
-            router.replace("/(customer-tabs)/home");
+            if (completeSignIn.status === 'complete') {
+                await setActive({ session: completeSignIn.createdSessionId });
+            }
 
         } catch (err: any) {
-            // Handle errors (like "Incorrect password")
+            const errorCode = err.errors?.[0]?.code;
+
+            if (errorCode === 'session_exists') {
+                await signOut();
+                onSignInPress();
+                return;
+            }
+
             Alert.alert("Login Failed", err.errors[0]?.message || "Invalid credentials");
         } finally {
             setLoading(false);

@@ -1,12 +1,16 @@
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import { Image, ScrollView, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ServiceCard } from "../../components/ui/ServiceCard";
 import { Typography } from "../../components/ui/Typography";
+import { useNotifications } from "../../context/NotificationContext";
 
 export default function HomeScreen() {
     const { user } = useUser(); // fetch the logged-in user data
+    const router = useRouter();
+    const { unreadCount } = useNotifications();
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -24,14 +28,24 @@ export default function HomeScreen() {
                         {/* user welcome text */}
                         <View>
                             <Typography variant="h2" className="text-xl font-bold text-gray-900">
-                                Welcome, {user?.firstName || "User"}!
+                                Welcome, {user?.firstName || "User"}
                             </Typography>
                         </View>
                     </View>
 
                     {/* notification bell */}
-                    <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm">
+                    <TouchableOpacity
+                        onPress={() => router.push("/notifications")}
+                        className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 relative"
+                    >
                         <Ionicons name="notifications-outline" size={20} color="black" />
+                        {unreadCount > 0 && (
+                            <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center border-2 border-[#FAFAFA]">
+                                <Text className="text-white text-[10px] font-bold">
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                </Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
 

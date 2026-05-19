@@ -4,6 +4,7 @@ import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenCache } from '../lib/tokenCache';
+import { NotificationProvider } from '../context/NotificationContext';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -17,6 +18,7 @@ function InitialLayout() {
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (isSignedIn && !user) return;
 
     const role = user?.unsafeMetadata?.role as string | undefined;
     const providerVerified = user?.unsafeMetadata?.providerVerified as boolean | undefined;
@@ -26,6 +28,7 @@ function InitialLayout() {
     const inOnboarding = segments[0] === '(provider-onboarding)';
     const inAuth = segments[0] === '(auth)';
     const inRoleSelect = segments[0] === 'role-select';
+    const inNotifications = segments[0] === 'notifications';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -43,7 +46,7 @@ function InitialLayout() {
 
     // signed in, role is customer
     if (role === 'customer') {
-      if (!inCustomerTabs) {
+      if (!inCustomerTabs && !inNotifications) {
         router.replace('/(customer-tabs)/home');
       }
       return;
@@ -60,11 +63,16 @@ function InitialLayout() {
       }
     }
 
-  }, [isSignedIn, isLoaded, user]);
+    // FIX 1: Added 'segments' to this dependency array below
+  }, [isSignedIn, isLoaded, user, segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="role-select" />
+
+      {/* FIX 2: Added the missing (auth) screen to the stack */}
+      <Stack.Screen name="(auth)" />
+
       <Stack.Screen
         name="(customer-tabs)"
         options={{
@@ -86,6 +94,7 @@ function InitialLayout() {
       <Stack.Screen name="chat/[bookingId]" />
       <Stack.Screen name="broadcast/new" />
       <Stack.Screen name="dispute/[bookingId]" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 }
@@ -108,7 +117,9 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SafeAreaProvider>
-          <InitialLayout />
+          <NotificationProvider>
+            <InitialLayout />
+          </NotificationProvider>
         </SafeAreaProvider>
       </ClerkLoaded>
     </ClerkProvider>
