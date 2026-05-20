@@ -6,11 +6,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ServiceCard } from "../../components/ui/ServiceCard";
 import { Typography } from "../../components/ui/Typography";
 import { useNotifications } from "../../context/NotificationContext";
+import { useLocation } from "../../context/LocationContext";
 
 export default function HomeScreen() {
     const { user } = useUser(); // fetch the logged-in user data
     const router = useRouter();
     const { unreadCount } = useNotifications();
+    const { locationName } = useLocation();
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -26,10 +28,16 @@ export default function HomeScreen() {
                         />
 
                         {/* user welcome text */}
-                        <View>
+                        <View className="flex-row items-center gap-2 mt-1">
                             <Typography variant="h2" className="text-xl font-bold text-gray-900">
                                 Welcome, {user?.firstName || "User"}
                             </Typography>
+                            <View className="flex-row items-center bg-gray-100 px-2.5 py-1 rounded-full">
+                                <Ionicons name="location" size={12} color="#4B5563" />
+                                <Text className="text-[10px] font-medium text-gray-600 ml-1">
+                                    {locationName || "Locating..."}
+                                </Text>
+                            </View>
                         </View>
                     </View>
 
@@ -90,6 +98,27 @@ export default function HomeScreen() {
                         iconName="map"
                         color="bg-green-100"
                         onPress={() => console.log("Tour Guide")}
+                    />
+                    <ServiceCard
+                        title="Plumber"
+                        description="Quick access to a plumber to help you fix pipe and drainage problems asap."
+                        iconName="build"
+                        color="bg-yellow-100"
+                        onPress={() => console.log("Plumber")}
+                    />
+                    <ServiceCard
+                        title="Electrician"
+                        description="Quick access to a electrician to help you fix pipe and drainage problems asap."
+                        iconName="bulb"
+                        color="bg-gray-100"
+                        onPress={() => console.log("Plumber")}
+                    />
+                    <ServiceCard
+                        title="Gardeners"
+                        description="Quick access to a electrician to help you fix pipe and drainage problems asap."
+                        iconName="leaf"
+                        color="bg-blue-100"
+                        onPress={() => console.log("Plumber")}
                     />
                 </View>
 

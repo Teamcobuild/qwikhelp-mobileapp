@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenCache } from '../lib/tokenCache';
 import { NotificationProvider } from '../context/NotificationContext';
+import { LocationProvider } from '../context/LocationContext';
+import { LocationModal } from '../components/modals/LocationModal';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -118,7 +120,10 @@ export default function RootLayout() {
       <ClerkLoaded>
         <SafeAreaProvider>
           <NotificationProvider>
-            <InitialLayout />
+            <LocationProvider>
+              <InitialLayout />
+              <LocationModal />
+            </LocationProvider>
           </NotificationProvider>
         </SafeAreaProvider>
       </ClerkLoaded>
