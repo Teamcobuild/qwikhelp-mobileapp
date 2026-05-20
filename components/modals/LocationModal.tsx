@@ -16,7 +16,7 @@ export const LocationModal = () => {
 
 
           <Image
-            source={require('../../assets/images/location_illustration.png')}
+            source={require('../../assets/images/location_illustration.svg')}
             style={styles.illustration}
             resizeMode="contain"
           />
