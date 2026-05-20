@@ -29,7 +29,16 @@ export default function NearbyScreen() {
       if (status !== 'granted') {
         return;
       }
-      let loc = await Location.getCurrentPositionAsync({});
+      // Try fast fetch first
+      let loc = await Location.getLastKnownPositionAsync();
+      
+      // Fallback if needed
+      if (!loc) {
+        loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
+      
       setLocation(loc);
     })();
   }, []);
@@ -88,7 +97,7 @@ export default function NearbyScreen() {
         />
 
         {/* User Pin */}
-        <Marker coordinate={initialRegion} zIndex={100}>
+        <Marker coordinate={initialRegion} zIndex={100} tracksViewChanges={false}>
           <View style={styles.userMarkerContainer}>
             <View style={styles.userMarkerIcon}>
               {user?.imageUrl ? (
@@ -118,6 +127,7 @@ export default function NearbyScreen() {
                 setSelectedProviderId(provider.id);
               }}
               zIndex={isSelected ? 10 : 1}
+              tracksViewChanges={isSelected}
             >
               {isSelected ? (
                 // Expanded State

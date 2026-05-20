@@ -45,7 +45,16 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
         return; // Skip API call if we have a cached value
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      // Try to get last known position first (fast)
+      let location = await Location.getLastKnownPositionAsync();
+      
+      // Fallback to current position if no last known position (slower)
+      if (!location) {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
+
       const [address] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,

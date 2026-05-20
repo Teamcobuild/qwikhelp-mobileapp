@@ -25,7 +25,7 @@ export const ServiceCard = ({ title, description, iconName, color = "bg-blue-100
                     {description}
                 </Typography>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#E5E7EB" />
+            <Ionicons name="chevron-forward" size={20} color="#000000" />
         </TouchableOpacity>
     );
 };

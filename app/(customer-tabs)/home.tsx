@@ -5,8 +5,8 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ServiceCard } from "../../components/ui/ServiceCard";
 import { Typography } from "../../components/ui/Typography";
-import { useNotifications } from "../../context/NotificationContext";
 import { useLocation } from "../../context/LocationContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 export default function HomeScreen() {
     const { user } = useUser(); // fetch the logged-in user data
@@ -28,13 +28,13 @@ export default function HomeScreen() {
                         />
 
                         {/* user welcome text */}
-                        <View className="flex-row items-center gap-2 mt-1">
+                        <View className="mt-1 flex-col items-start ">
                             <Typography variant="h2" className="text-xl font-bold text-gray-900">
                                 Welcome, {user?.firstName || "User"}
                             </Typography>
-                            <View className="flex-row items-center bg-gray-100 px-2.5 py-1 rounded-full">
-                                <Ionicons name="location" size={12} color="#4B5563" />
-                                <Text className="text-[10px] font-medium text-gray-600 ml-1">
+                            <View className="flex-row w-fit items-center justify-center bg-green-100 px-2 py-1 rounded-full">
+                                {/* <Ionicons name="location" size={12} color="#14a800" /> */}
+                                <Text className="text-[10px] font-medium text-green-900 ml-1">
                                     {locationName || "Locating..."}
                                 </Text>
                             </View>
@@ -65,7 +65,7 @@ export default function HomeScreen() {
                         description="Quick access to a cook to cater for your feeding."
                         iconName="restaurant"
                         color="bg-orange-100"
-                        onPress={() => console.log("Cooking")}
+                        onPress={() => router.push("/booking/cooking")}
                     />
 
                     <ServiceCard
@@ -73,7 +73,7 @@ export default function HomeScreen() {
                         description="Quick access to cleaning agents in your desired location."
                         iconName="water"
                         color="bg-blue-100"
-                        onPress={() => console.log("Cleaning")}
+                        onPress={() => router.push("/booking/cleaning")}
                     />
 
                     <ServiceCard
@@ -81,7 +81,7 @@ export default function HomeScreen() {
                         description="Quick access to personnel for your laundry maintenance."
                         iconName="shirt"
                         color="bg-purple-100"
-                        onPress={() => console.log("Laundry")}
+                        onPress={() => router.push("/booking/laundry")}
                     />
 
                     <ServiceCard
@@ -89,7 +89,7 @@ export default function HomeScreen() {
                         description="Quick access to a companion in your time of loneliness."
                         iconName="people"
                         color="bg-pink-100"
-                        onPress={() => console.log("Companion")}
+                        onPress={() => router.push("/booking/companion")}
                     />
 
                     <ServiceCard
@@ -97,28 +97,28 @@ export default function HomeScreen() {
                         description="Quick access to a tour guide to help you navigate."
                         iconName="map"
                         color="bg-green-100"
-                        onPress={() => console.log("Tour Guide")}
+                        onPress={() => router.push("/booking/tour-guide")}
                     />
                     <ServiceCard
                         title="Plumber"
                         description="Quick access to a plumber to help you fix pipe and drainage problems asap."
                         iconName="build"
                         color="bg-yellow-100"
-                        onPress={() => console.log("Plumber")}
+                        onPress={() => router.push("/booking/plumber")}
                     />
                     <ServiceCard
                         title="Electrician"
-                        description="Quick access to a electrician to help you fix pipe and drainage problems asap."
+                        description="Quick access to an electrician to help you fix wiring problems asap."
                         iconName="bulb"
                         color="bg-gray-100"
-                        onPress={() => console.log("Plumber")}
+                        onPress={() => router.push("/booking/electrician")}
                     />
                     <ServiceCard
                         title="Gardeners"
-                        description="Quick access to a electrician to help you fix pipe and drainage problems asap."
+                        description="Quick access to a gardener to help you maintain your environment."
                         iconName="leaf"
                         color="bg-blue-100"
-                        onPress={() => console.log("Plumber")}
+                        onPress={() => router.push("/booking/gardeners")}
                     />
                 </View>
 

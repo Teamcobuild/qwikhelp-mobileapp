@@ -31,6 +31,7 @@ function InitialLayout() {
     const inAuth = segments[0] === '(auth)';
     const inRoleSelect = segments[0] === 'role-select';
     const inNotifications = segments[0] === 'notifications';
+    const inBooking = segments[0] === 'booking';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -48,7 +49,7 @@ function InitialLayout() {
 
     // signed in, role is customer
     if (role === 'customer') {
-      if (!inCustomerTabs && !inNotifications) {
+      if (!inCustomerTabs && !inNotifications && !inBooking) {
         router.replace('/(customer-tabs)/home');
       }
       return;
@@ -97,6 +98,7 @@ function InitialLayout() {
       <Stack.Screen name="broadcast/new" />
       <Stack.Screen name="dispute/[bookingId]" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="booking/[category]" />
     </Stack>
   );
 }
