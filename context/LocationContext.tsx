@@ -38,13 +38,15 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
 
   const fetchLocationName = async () => {
     try {
-      // Check cache first to avoid rate limits
+      // 1. Instantly load from cache so the UI doesn't lag
+      let hasCachedLocation = false;
       const cachedLocation = await SecureStore.getItemAsync('cachedLocationName');
       if (cachedLocation) {
         setLocationName(cachedLocation);
-        return; // Skip API call if we have a cached value
+        hasCachedLocation = true;
       }
 
+      // 2. Perform a background check for updated location
       // Try to get last known position first (fast)
       let location = await Location.getLastKnownPositionAsync();
       
@@ -55,24 +57,31 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
         });
       }
 
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
+      if (location) {
+        const [address] = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
 
-      if (address) {
-        const state = address.region || address.city || "Unknown State";
-        const country = address.country || "Unknown Country";
-        const formattedName = `${state}, ${country}`;
-        setLocationName(formattedName);
-        
-        // Cache it for future app loads
-        await SecureStore.setItemAsync('cachedLocationName', formattedName);
+        if (address) {
+          const state = address.region || address.city || "Unknown State";
+          const country = address.country || "Unknown Country";
+          const formattedName = `${state}, ${country}`;
+          
+          // Only update state and cache if it's different or we had no cache
+          if (formattedName !== cachedLocation) {
+            setLocationName(formattedName);
+            await SecureStore.setItemAsync('cachedLocationName', formattedName);
+          }
+        }
       }
     } catch (error: any) {
       console.error("Error fetching location name", error);
-      // Fallback if rate limited or failed
-      setLocationName("Location unavailable");
+      // Fallback: only show "unavailable" if we don't even have a cached location
+      const cachedLocation = await SecureStore.getItemAsync('cachedLocationName');
+      if (!cachedLocation) {
+        setLocationName("Location unavailable");
+      }
     }
   };
 

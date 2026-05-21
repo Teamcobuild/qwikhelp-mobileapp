@@ -6,15 +6,37 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface SuccessBookingModalProps {
   visible: boolean;
   onClose: () => void;
+  jobData?: {
+    category: string;
+    duration: string;
+    date: string;
+    time: string;
+    amount: string;
+  };
 }
 
-export const SuccessBookingModal = ({ visible, onClose }: SuccessBookingModalProps) => {
+export const SuccessBookingModal = ({ visible, onClose, jobData }: SuccessBookingModalProps) => {
   const router = useRouter();
 
   const handleClose = () => {
     onClose();
     router.back();
   };
+
+  React.useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (visible) {
+      timeout = setTimeout(() => {
+        onClose();
+        // Replace current screen so back button doesn't come back to success modal
+        router.replace({
+          pathname: '/booking/offers/mock-job-123',
+          params: jobData
+        });
+      }, 5000);
+    }
+    return () => clearTimeout(timeout);
+  }, [visible, router, onClose]);
 
   return (
     <Modal visible={visible} transparent animationType="fade">

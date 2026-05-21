@@ -225,6 +225,13 @@ export default function BookingScreen() {
       <SuccessBookingModal
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
+        jobData={{
+          category: Array.isArray(category) ? category[0] : category || 'Service',
+          duration,
+          date: dateStr,
+          time: timeStr,
+          amount
+        }}
       />
     </SafeAreaView>
   );

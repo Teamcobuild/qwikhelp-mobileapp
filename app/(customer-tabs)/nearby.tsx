@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, Animated, Easing } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@clerk/clerk-expo';
 import * as Location from 'expo-location';
+
 import { minimalMapStyle } from '../../constants/mapStyle';
 
 const { width, height } = Dimensions.get('window');
@@ -42,6 +43,45 @@ export default function NearbyScreen() {
       setLocation(loc);
     })();
   }, []);
+
+  // Ping animation value
+  const pingScale = useRef(new Animated.Value(1)).current;
+  const pingOpacity = useRef(new Animated.Value(0.2)).current;
+
+  useEffect(() => {
+    // A subtle radar ping effect for the outer ring of the user marker
+    const scaleAnim = Animated.timing(pingScale, {
+      toValue: 1.8,
+      duration: 2000,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    });
+    
+    const opacityAnim = Animated.timing(pingOpacity, {
+      toValue: 0,
+      duration: 2000,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    });
+
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          scaleAnim,
+          Animated.timing(pingScale, { toValue: 1, duration: 0, useNativeDriver: true })
+        ]),
+        Animated.sequence([
+          opacityAnim,
+          Animated.timing(pingOpacity, { toValue: 0.2, duration: 0, useNativeDriver: true })
+        ])
+      ])
+    ).start();
+  }, []);
+
+  const animatedPingStyle = {
+    transform: [{ scale: pingScale }],
+    opacity: pingOpacity,
+  };
 
   if (!location) {
     return (
@@ -97,16 +137,22 @@ export default function NearbyScreen() {
         />
 
         {/* User Pin */}
-        <Marker coordinate={initialRegion} zIndex={100} tracksViewChanges={false}>
-          <View style={styles.userMarkerContainer}>
-            <View style={styles.userMarkerIcon}>
-              {user?.imageUrl ? (
-                <Image source={{ uri: user.imageUrl }} style={styles.userImage} />
-              ) : (
-                <Ionicons name="person" size={24} color="white" />
-              )}
+        <Marker coordinate={initialRegion} zIndex={100} tracksViewChanges={true}>
+          <View style={styles.userMarkerWrapper}>
+            {/* Animated Ping Ring */}
+            <Animated.View style={[styles.pingRing, animatedPingStyle]} />
+            
+            {/* Actual Marker */}
+            <View style={styles.userMarkerContainer}>
+              <View style={styles.userMarkerIcon}>
+                {user?.imageUrl ? (
+                  <Image source={{ uri: user.imageUrl }} style={styles.userImage} />
+                ) : (
+                  <Ionicons name="person" size={24} color="white" />
+                )}
+              </View>
+              <View style={styles.userMarkerTriangle} />
             </View>
-            <View style={styles.userMarkerTriangle} />
           </View>
         </Marker>
 
@@ -185,6 +231,21 @@ const styles = StyleSheet.create({
   map: {
     width: width,
     height: height,
+  },
+  userMarkerWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 100, // Large enough to contain the ping ring without clipping
+    height: 100,
+  },
+  pingRing: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#3b82f6', // Blue ping
+    top: 28, // Centered behind the marker (100 - 44)/2
+    left: 28,
   },
   userMarkerContainer: {
     alignItems: 'center',

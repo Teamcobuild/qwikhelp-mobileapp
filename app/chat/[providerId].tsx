@@ -12,9 +12,9 @@ const PROVIDERS: Record<string, { name: string, image: string, online: boolean }
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
+  const { providerId } = useLocalSearchParams<{ providerId: string }>();
   
-  const provider = PROVIDERS[bookingId || '1'] || PROVIDERS['1'];
+  const provider = PROVIDERS[providerId || '1'] || PROVIDERS['1'];
 
   const [message, setMessage] = useState('');
   
