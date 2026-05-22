@@ -18,7 +18,10 @@ const MOCK_PROVIDERS = [
   { id: '5', name: 'Bob Johnson', distance: '5km from you', rating: '2.0', image: 'https://i.pravatar.cc/150?img=13', latOffset: -0.009, lngOffset: -0.005 },
 ];
 
+import { useRouter } from 'expo-router';
+
 export default function NearbyScreen() {
+  const router = useRouter();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -170,7 +173,11 @@ export default function NearbyScreen() {
               coordinate={coordinate} 
               onPress={(e) => {
                 e.stopPropagation();
-                setSelectedProviderId(provider.id);
+                if (isSelected) {
+                  router.push(`/provider-profile/${provider.id}`);
+                } else {
+                  setSelectedProviderId(provider.id);
+                }
               }}
               zIndex={isSelected ? 10 : 1}
               tracksViewChanges={isSelected}

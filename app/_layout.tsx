@@ -33,6 +33,7 @@ function InitialLayout() {
     const inNotifications = segments[0] === 'notifications';
     const inBooking = segments[0] === 'booking';
     const inChat = segments[0] === 'chat';
+    const inProviderProfile = segments[0] === 'provider-profile';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -50,7 +51,7 @@ function InitialLayout() {
 
     // signed in, role is customer
     if (role === 'customer') {
-      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat) {
+      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat && !inProviderProfile) {
         router.replace('/(customer-tabs)/home');
       }
       return;

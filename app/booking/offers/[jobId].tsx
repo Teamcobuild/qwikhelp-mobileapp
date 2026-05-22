@@ -90,17 +90,24 @@ export default function OffersScreen() {
             <View key={offer.id} className="bg-white rounded-2xl p-4 mb-4 shadow-sm shadow-gray-100">
               
               {/* Provider Info */}
-              <View className="flex-row mb-4">
-                <Image source={{ uri: offer.image }} className="w-12 h-12 rounded-full mr-3" />
+              <TouchableOpacity 
+                className="flex-row"
+                onPress={() => router.push(`/provider-profile/${offer.id}`)}
+              >
+                <Image source={{ uri: offer.image }} className="w-16 h-16 rounded-full mr-3" />
                 <View className="flex-1">
-                  <View className="flex-row items-center mb-1">
-                    <Text className="text-gray-900 font-bold text-base mr-2">{offer.name}</Text>
-                    <Ionicons name="star" size={14} color="#f97316" />
-                    <Text className="text-orange-500 font-bold text-xs ml-1">{offer.rating}</Text>
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-gray-900 font-bold text-base">{offer.name}</Text>
+                    <View className="flex-row items-center">
+                      <Ionicons name="star" size={14} color="#f97316" />
+                      <Text className="text-orange-500 font-bold text-xs ml-1">{offer.rating}</Text>
+                    </View>
                   </View>
-                  <Text className="text-gray-500 text-xs leading-4">{offer.description}</Text>
+                  <Text className="text-gray-500 text-xs mb-2" numberOfLines={2}>
+                    {offer.description}
+                  </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               {/* Tags & Actions */}
               <View className="flex-row items-center justify-between mb-3">

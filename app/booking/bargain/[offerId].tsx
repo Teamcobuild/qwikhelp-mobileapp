@@ -102,7 +102,10 @@ export default function BargainScreen() {
           {/* Provider Card */}
           <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm shadow-gray-100">
             <View className="flex-row items-center justify-between border-b border-gray-100 pb-4 mb-4">
-              <View className="flex-row items-center">
+              <TouchableOpacity 
+                className="flex-row items-center"
+                onPress={() => router.push(`/provider-profile/${PROVIDER.id}`)}
+              >
                 <Image source={{ uri: PROVIDER.image }} className="w-12 h-12 rounded-full mr-3" />
                 <View>
                   <Text className="text-gray-900 font-bold text-base mb-1">{PROVIDER.name}</Text>
@@ -111,7 +114,7 @@ export default function BargainScreen() {
                     <Text className="text-orange-500 font-bold text-xs ml-1">{PROVIDER.rating}</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
               <View className="flex-row gap-2">
                 <TouchableOpacity className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center">
                   <Ionicons name="call" size={14} color="#2563eb" />

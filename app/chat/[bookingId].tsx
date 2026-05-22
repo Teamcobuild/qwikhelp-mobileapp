@@ -4,11 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
-// Simulated Provider Data based on ID
-const PROVIDERS: Record<string, { name: string, image: string, online: boolean }> = {
-  '1': { name: 'Chinedu Okafor', image: 'https://i.pravatar.cc/150?img=11', online: true },
-  'offer-456': { name: 'Ngozi Eze', image: 'https://i.pravatar.cc/150?img=5', online: true },
-};
+import { PROVIDERS } from '../../constants/providers';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -38,12 +34,17 @@ export default function ChatScreen() {
               <Ionicons name="arrow-back" size={24} color="#111827" />
             </TouchableOpacity>
             
-            <Image source={{ uri: provider.image }} className="w-10 h-10 rounded-full mr-3" />
-            
-            <View>
-              <Text className="text-gray-900 font-bold text-base">{provider.name}</Text>
-              <Text className="text-blue-600 text-xs font-medium">Online</Text>
-            </View>
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => router.push(`/provider-profile/${bookingId || '1'}`)}
+            >
+              <Image source={{ uri: provider.image }} className="w-10 h-10 rounded-full mr-3" />
+              
+              <View>
+                <Text className="text-gray-900 font-bold text-base">{provider.name}</Text>
+                <Text className="text-blue-600 text-xs font-medium">Online</Text>
+              </View>
+            </TouchableOpacity>
           </View>
           
           <View className="flex-row items-center gap-4">
