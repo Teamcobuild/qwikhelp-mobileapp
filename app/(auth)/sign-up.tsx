@@ -5,7 +5,8 @@ import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons"; // For the checkbox checkmark
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
+import { alertService } from "../../lib/AlertService";
 
 export default function SignUpForm() {
     const { isLoaded, signUp } = useSignUp();
@@ -27,13 +28,13 @@ export default function SignUpForm() {
     const { signOut } = useAuth();
 
     const onSignUpPress = async () => {
-        if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) return Alert.alert("Required", "Please fill all fields");
+        if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) return alertService.alert("Required", "Please fill all fields");
         if (!isLoaded) return;
-        if (!agreed) return Alert.alert("Required", "Please agree to the Terms & Conditions");
-        if (form.password !== form.confirmPassword) return Alert.alert("Error", "Passwords do not match");
+        if (!agreed) return alertService.alert("Required", "Please agree to the Terms & Conditions");
+        if (form.password !== form.confirmPassword) return alertService.alert("Error", "Passwords do not match");
         // Guard: role must exist
         if (!role || !['customer', 'provider'].includes(role)) {
-            return Alert.alert("Error", "Invalid role. Please go back and select again.");
+            return alertService.alert("Error", "Invalid role. Please go back and select again.");
         }
         setLoading(true);
         try {
@@ -64,7 +65,7 @@ export default function SignUpForm() {
                 onSignUpPress(); // retry once after signout
                 return;
             }
-            Alert.alert("Error", err.errors[0]?.message || "Something went wrong");
+            alertService.alert("Error", err.errors[0]?.message || "Something went wrong");
         } finally {
             setLoading(false);
         }

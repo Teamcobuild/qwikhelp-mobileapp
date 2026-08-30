@@ -63,7 +63,7 @@ export default function BookingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
         {/* Header */}

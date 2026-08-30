@@ -1,7 +1,8 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
+import { alertService } from "../../lib/AlertService";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Typography } from "../../components/ui/Typography"; // Verify this path matches your setup
@@ -27,7 +28,7 @@ export default function ForgotPassword() {
             });
             setStep("code"); // Move to OTP input
         } catch (err: any) {
-            Alert.alert("Error", err.errors[0]?.message);
+            alertService.alert("Error", err.errors[0]?.message);
         } finally {
             setLoading(false);
         }
@@ -35,11 +36,11 @@ export default function ForgotPassword() {
 
     const validateForm = () => {
         if (!password || !confirmPassword) {
-            Alert.alert("Error", "Passwords cannot be empty");
+            alertService.alert("Error", "Passwords cannot be empty");
             return false;
         }
         if (confirmPassword !== password) {
-            Alert.alert("Error", "Passwords do not match");
+            alertService.alert("Error", "Passwords do not match");
             return false;
         }
         return true;
@@ -60,15 +61,15 @@ export default function ForgotPassword() {
 
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
-                Alert.alert("Success", "Password Reset Successfully!");
+                alertService.alert("Success", "Password Reset Successfully!");
 
                 // FIX 2: Route to root so _layout.tsx sorts Customer vs Provider
                 router.replace("/");
             } else {
-                Alert.alert("Error", "Something Went Wrong!");
+                alertService.alert("Error", "Something Went Wrong!");
             }
         } catch (err: any) {
-            Alert.alert("Failed", err.errors[0]?.message || "Invalid Code");
+            alertService.alert("Failed", err.errors[0]?.message || "Invalid Code");
         } finally {
             setLoading(false);
         }

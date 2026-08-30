@@ -5,7 +5,8 @@ import { Typography } from "@/components/ui/Typography";
 import { useSignUp } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, View } from "react-native";
+import { View } from "react-native";
+import { alertService } from "../../lib/AlertService";
 
 export default function VerifyEmail() {
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -33,10 +34,10 @@ export default function VerifyEmail() {
                 router.dismissAll();
                 router.replace("/(customer-tabs)/home");
             } else {
-                Alert.alert("Error", "Verification failed. Please try again.");
+                alertService.alert("Error", "Verification failed. Please try again.");
             }
         } catch (err: any) {
-            Alert.alert("Error", err.errors[0].message);
+            alertService.alert("Error", err.errors[0].message);
         } finally {
             setLoading(false);
         }

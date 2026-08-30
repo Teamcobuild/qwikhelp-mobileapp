@@ -7,6 +7,7 @@ import { tokenCache } from '../lib/tokenCache';
 import { NotificationProvider } from '../context/NotificationContext';
 import { LocationProvider } from '../context/LocationContext';
 import { LocationModal } from '../components/modals/LocationModal';
+import { CustomAlert } from '../components/modals/CustomAlert';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -127,6 +128,7 @@ export default function RootLayout() {
             <LocationProvider>
               <InitialLayout />
               <LocationModal />
+              <CustomAlert />
             </LocationProvider>
           </NotificationProvider>
         </SafeAreaProvider>

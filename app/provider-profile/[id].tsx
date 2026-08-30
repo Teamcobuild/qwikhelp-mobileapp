@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, ImageBackground, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, ImageBackground, Modal, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { PROVIDERS } from '../../constants/providers';
 
 export default function ProviderProfileScreen() {
@@ -13,7 +13,10 @@ export default function ProviderProfileScreen() {
   const [showAddressModal, setShowAddressModal] = useState(false);
 
   return (
-    <View className="flex-1 bg-white">
+    <KeyboardAvoidingView 
+      className="flex-1 bg-white"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} bounces={false}>
         {/* Cover Image & Header */}
         <ImageBackground
@@ -163,6 +166,6 @@ export default function ProviderProfileScreen() {
         </View>
       </Modal>
 
-    </View>
+    </KeyboardAvoidingView>
   );
 }

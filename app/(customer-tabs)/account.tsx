@@ -5,13 +5,15 @@ import React from "react";
 import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { alertService } from "../../lib/AlertService";
+
 export default function AccountScreen() {
     const { user } = useUser();
     const { signOut } = useAuth();
     const router = useRouter();
 
     const handleLogout = () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
+        alertService.alert("Logout", "Are you sure you want to logout?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Logout",

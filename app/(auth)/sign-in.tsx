@@ -2,7 +2,8 @@ import { useAuth, useSignIn } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Image, View } from "react-native";
+import { Image, View } from "react-native";
+import { alertService } from "../../lib/AlertService";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Typography } from "../../components/ui/Typography";
@@ -39,7 +40,7 @@ export default function SignInScreen() {
                 return;
             }
 
-            Alert.alert("Login Failed", err.errors[0]?.message || "Invalid credentials");
+            alertService.alert("Login Failed", err.errors[0]?.message || "Invalid credentials");
         } finally {
             setLoading(false);
         }
