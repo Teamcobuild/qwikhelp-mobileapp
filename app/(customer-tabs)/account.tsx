@@ -47,7 +47,10 @@ export default function AccountScreen() {
                             </Text>
                         </View>
                     </View>
-                    <TouchableOpacity className="p-2 -mr-2">
+                    <TouchableOpacity 
+                        onPress={() => router.push("/(customer-tabs)/edit-profile")}
+                        className="p-2 -mr-2"
+                    >
                         <Ionicons name="create-outline" size={24} color="#2563EB" />
                     </TouchableOpacity>
                 </View>
