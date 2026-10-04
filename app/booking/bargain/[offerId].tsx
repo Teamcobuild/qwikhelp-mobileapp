@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Simulated Provider Data
 const PROVIDER_BASE = {
@@ -15,7 +15,7 @@ const PROVIDER_BASE = {
 
 export default function BargainScreen() {
   const router = useRouter();
-  const { offerId, category, duration, date, time, amount } = useLocalSearchParams<{ 
+  const { offerId, category, duration, date, time, amount } = useLocalSearchParams<{
     offerId: string;
     category?: string;
     duration?: string;
@@ -38,7 +38,7 @@ export default function BargainScreen() {
 
   const [price, setPrice] = useState(SUGGESTED_PRICES[0]);
   const [note, setNote] = useState('');
-  const [messages, setMessages] = useState<{sender: 'provider' | 'user', amount?: string, text: string}[]>([
+  const [messages, setMessages] = useState<{ sender: 'provider' | 'user', amount?: string, text: string }[]>([
     {
       sender: 'provider',
       text: 'I can only go for that amount considering the work involved'
@@ -57,12 +57,12 @@ export default function BargainScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
         {/* Header */}
-        <View className="px-6 py-4 bg-white border-b border-gray-100">
+        <View className="px-6 py-4">
           <View className="flex-row items-center mb-2">
             <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2">
               <Ionicons name="arrow-back" size={24} color="black" />
@@ -102,7 +102,7 @@ export default function BargainScreen() {
           {/* Provider Card */}
           <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm shadow-gray-100">
             <View className="flex-row items-center justify-between border-b border-gray-100 pb-4 mb-4">
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => router.push(`/provider-profile/${PROVIDER.id}`)}
               >
@@ -119,7 +119,7 @@ export default function BargainScreen() {
                 <TouchableOpacity className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center">
                   <Ionicons name="call" size={14} color="#2563eb" />
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => router.push(`/chat/${PROVIDER.id}`)}
                   className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center bg-blue-50"
                 >
@@ -159,7 +159,7 @@ export default function BargainScreen() {
                         <TouchableOpacity className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center">
                           <Ionicons name="call" size={12} color="#2563eb" />
                         </TouchableOpacity>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={() => router.push(`/chat/${PROVIDER.id}`)}
                           className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center bg-blue-50"
                         >
@@ -227,7 +227,7 @@ export default function BargainScreen() {
               style={{ minHeight: 80 }}
             />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleSendOffer}
               className="w-full bg-blue-600 py-3.5 rounded-xl items-center"
             >

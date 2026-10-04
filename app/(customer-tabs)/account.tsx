@@ -20,7 +20,6 @@ export default function AccountScreen() {
                 style: "destructive",
                 onPress: async () => {
                     await signOut();
-                    router.dismissAll();
                     router.replace("/(auth)/sign-in");
                 },
             },

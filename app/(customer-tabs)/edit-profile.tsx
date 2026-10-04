@@ -71,7 +71,7 @@ export default function EditProfileScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900 flex-1">Edit Profile</Text>
+                <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-8">Edit Profile</Text>
             </View>
 
             <ScrollView className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false}>
