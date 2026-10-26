@@ -30,9 +30,10 @@ export default function VerifyEmail() {
                 // 3. Create the session (Logs the user in!)
                 await setActive({ session: completeSignUp.createdSessionId });
 
-                // Clear the navigation stack and go to home
-                router.dismissAll();
-                router.replace("/(customer-tabs)/home");
+                // Clear the navigation stack; root layout guard routes based on user role
+                if (router.canDismiss()) {
+                    router.dismissAll();
+                }
             } else {
                 alertService.alert("Error", "Verification failed. Please try again.");
             }

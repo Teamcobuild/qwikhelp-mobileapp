@@ -12,7 +12,7 @@ export interface Offer {
   eta: string;
   distance: string;
   type: string;
-  amount?: string;
+  amount?: string | number;
 }
 
 interface BookingDetails {

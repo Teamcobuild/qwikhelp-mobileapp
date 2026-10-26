@@ -35,6 +35,8 @@ function InitialLayout() {
     const inBooking = segments[0] === 'booking';
     const inChat = segments[0] === 'chat';
     const inProviderProfile = segments[0] === 'provider-profile';
+    const inDispute = segments[0] === 'dispute';
+    const inBroadcast = segments[0] === 'broadcast';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -60,11 +62,16 @@ function InitialLayout() {
 
     // signed in, role is provider
     if (role === 'provider') {
+      const onboardingStep = (user?.unsafeMetadata?.onboardingStep as string) || 'personal-details';
+
       if (!providerVerified && !inOnboarding) {
-        router.replace('/(provider-onboarding)/id-upload');
+        router.replace(`/(provider-onboarding)/${onboardingStep}` as any);
         return;
       }
-      if (providerVerified && !inProviderTabs) {
+
+      // Allow providers to access provider tabs and shared screens
+      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inBroadcast;
+      if (providerVerified && !inProviderAllowed) {
         router.replace('/(provider-tabs)/dashboard');
       }
     }

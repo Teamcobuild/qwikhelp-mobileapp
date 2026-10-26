@@ -43,9 +43,9 @@ export default function OffersScreen() {
   const userBudget = amount ? parseInt(amount, 10) : 7000;
   const counterOfferAmount = userBudget + 1500; // Strictly more than user offer
 
-  const OFFERS = OFFERS_DATA.map(offer => ({
+  const OFFERS: Offer[] = OFFERS_DATA.map(offer => ({
     ...offer,
-    amount: offer.type === 'counter' ? counterOfferAmount : null
+    amount: offer.type === 'counter' ? counterOfferAmount.toString() : undefined
   }));
 
   return (
@@ -90,7 +90,7 @@ export default function OffersScreen() {
           {OFFERS.map((offer) => (
             <OfferCard
               key={offer.id}
-              offer={offer as Offer}
+              offer={offer}
               bookingDetails={{ category, duration, date, time, amount }}
             />
           ))}
