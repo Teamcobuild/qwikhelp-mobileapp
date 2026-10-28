@@ -8,6 +8,7 @@ import { NotificationProvider } from '../context/NotificationContext';
 import { LocationProvider } from '../context/LocationContext';
 import { LocationModal } from '../components/modals/LocationModal';
 import { CustomAlert } from '../components/modals/CustomAlert';
+import { ProviderStatus } from '../types/provider';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -24,7 +25,9 @@ function InitialLayout() {
     if (isSignedIn && !user) return;
 
     const role = user?.unsafeMetadata?.role as string | undefined;
-    const providerVerified = user?.unsafeMetadata?.providerVerified as boolean | undefined;
+    // Written only by the backend (provider-status-sync edge function).
+    const providerStatus = user?.publicMetadata?.providerStatus as ProviderStatus | undefined;
+    const providerVerified = providerStatus === 'approved';
 
     const inCustomerTabs = segments[0] === '(customer-tabs)';
     const inProviderTabs = segments[0] === '(provider-tabs)';
@@ -36,7 +39,6 @@ function InitialLayout() {
     const inChat = segments[0] === 'chat';
     const inProviderProfile = segments[0] === 'provider-profile';
     const inDispute = segments[0] === 'dispute';
-    const inBroadcast = segments[0] === 'broadcast';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -54,7 +56,7 @@ function InitialLayout() {
 
     // signed in, role is customer
     if (role === 'customer') {
-      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat && !inProviderProfile) {
+      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat && !inProviderProfile && !inDispute) {
         router.replace('/(customer-tabs)/home');
       }
       return;
@@ -62,7 +64,10 @@ function InitialLayout() {
 
     // signed in, role is provider
     if (role === 'provider') {
-      const onboardingStep = (user?.unsafeMetadata?.onboardingStep as string) || 'personal-details';
+      const inReview = providerStatus === 'submitted' || providerStatus === 'needs_changes' || providerStatus === 'rejected';
+      const onboardingStep = inReview
+        ? 'pending'
+        : (user?.unsafeMetadata?.onboardingStep as string) || 'personal-details';
 
       if (!providerVerified && !inOnboarding) {
         router.replace(`/(provider-onboarding)/${onboardingStep}` as any);
@@ -70,7 +75,7 @@ function InitialLayout() {
       }
 
       // Allow providers to access provider tabs and shared screens
-      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inBroadcast;
+      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute;
       if (providerVerified && !inProviderAllowed) {
         router.replace('/(provider-tabs)/dashboard');
       }
@@ -105,7 +110,6 @@ function InitialLayout() {
       <Stack.Screen name="(provider-onboarding)" />
       <Stack.Screen name="provider-profile/[id]" />
       <Stack.Screen name="chat/[bookingId]" />
-      <Stack.Screen name="broadcast/new" />
       <Stack.Screen name="dispute/[bookingId]" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="booking/[category]" />

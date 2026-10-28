@@ -1,4 +1,3 @@
-import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -7,13 +6,11 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
+import { useKyc } from '@/context/KycContext';
 
 export default function BiometricCheck() {
-  const { user } = useUser();
   const router = useRouter();
-
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, uploadImage } = useKyc();
 
   const [selfieUri, setSelfieUri] = useState<string | null>(savedKyc.selfieUri || null);
   const [loading, setLoading] = useState(false);
@@ -47,16 +44,12 @@ export default function BiometricCheck() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'proof-of-work',
-          kycData: {
-            ...savedKyc,
-            selfieUri,
-            biometricPassed: true,
-          },
-        },
+      // MVP: the selfie is compared with the ID photo during manual review.
+      const selfiePath = await uploadImage('kyc', selfieUri, 'selfie');
+      await saveStep({
+        next: 'proof-of-work',
+        kyc: { selfie_path: selfiePath },
+        local: { selfieUri },
       });
 
       router.push('/(provider-onboarding)/proof-of-work');

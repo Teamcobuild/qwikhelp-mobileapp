@@ -1,5 +1,6 @@
+import { TRADE_CATEGORIES, TradeCategory } from '@/constants/kyc';
+import { useKyc } from '@/context/KycContext';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,111 +16,35 @@ import {
   View,
 } from 'react-native';
 
-interface TradeCategory {
-  id: string;
-  name: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}
-
-const TRADE_CATEGORIES: TradeCategory[] = [
-  {
-    id: 'electrical',
-    name: 'Electrical Repairs',
-    subtitle: 'Residential & Commercial installations',
-    icon: 'flash',
-  },
-  {
-    id: 'plumbing',
-    name: 'Plumbing & Pipefitting',
-    subtitle: 'Drainage, leaks, pipe repairs & fittings',
-    icon: 'water',
-  },
-  {
-    id: 'cleaning',
-    name: 'Deep Cleaning & Janitorial',
-    subtitle: 'Homes, offices & post-construction clean',
-    icon: 'sparkles',
-  },
-  // {
-  //   id: 'ac_repair',
-  //   name: 'AC & Refrigeration',
-  //   subtitle: 'Servicing, gas refill & installations',
-  //   icon: 'snow',
-  // },
-  {
-    id: 'carpentry',
-    name: 'Carpentry & Woodwork',
-    subtitle: 'Furniture, roofing, cabinets & framing',
-    icon: 'hammer',
-  },
-  // {
-  //   id: 'painting',
-  //   name: 'Painting & Decoration',
-  //   subtitle: 'Interior, exterior, POP & screeding',
-  //   icon: 'color-palette',
-  // },
-  {
-    id: 'cooking',
-    name: 'Catering & Cooking',
-    subtitle: 'Private chef, meal prep & event catering',
-    icon: 'restaurant',
-  },
-  {
-    id: 'laundry',
-    name: 'Laundry & Dry Cleaning',
-    subtitle: 'Washing, ironing & garment care',
-    icon: 'shirt',
-  },
-  // {
-  //   id: 'mechanic',
-  //   name: 'Auto Mechanic & Diagnostics',
-  //   subtitle: 'Engine, brakes, suspension & electrical',
-  //   icon: 'car',
-  // },
-  // {
-  //   id: 'moving',
-  //   name: 'Moving & Delivery',
-  //   subtitle: 'Relocation, heavy lifting & haulage',
-  //   icon: 'cube',
-  // },
-];
-
 const EXPERIENCE_OPTIONS = ['1-2 yrs', '3-5 yrs', '6+ yrs'];
 
 export default function PersonalDetails() {
   const { user } = useUser();
   const router = useRouter();
 
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, uploadImage, publicUrl } = useKyc();
 
   const defaultName =
     savedKyc.legalName ||
     user?.fullName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-    'Chukwuemeka Victor';
+    '';
 
   const defaultPhone =
     savedKyc.phone ||
-    user?.primaryPhoneNumber?.phoneNumber?.replace('+234', '') ||
-    '0803 492 8812';
-
-  const defaultBio =
-    savedKyc.bio ||
-    'Over 6 years of certified residential and commercial electrical installation and repairs.';
+    user?.primaryPhoneNumber?.phoneNumber?.replace('+234', '0') ||
+    '';
 
   const [legalName, setLegalName] = useState<string>(defaultName);
   const [phone, setPhone] = useState<string>(defaultPhone);
   const [selectedTrade, setSelectedTrade] = useState<TradeCategory>(
-    TRADE_CATEGORIES.find((t) => t.name === savedKyc.trade) || TRADE_CATEGORIES[0]
+    TRADE_CATEGORIES.find((t) => t.id === savedKyc.trade) || TRADE_CATEGORIES[0]
   );
   const [yearsExperience, setYearsExperience] = useState<string>(
-    savedKyc.yearsExperience || '6+ yrs'
+    savedKyc.yearsExperience || '1-2 yrs'
   );
-  const [bio, setBio] = useState<string>(defaultBio);
-  const [avatarUri, setAvatarUri] = useState<string | null>(
-    savedKyc.avatarUri || user?.imageUrl || null
-  );
+  const [bio, setBio] = useState<string>(savedKyc.bio || '');
+  const [avatarUri, setAvatarUri] = useState<string | null>(savedKyc.avatarUri || null);
   const [encryptedAgreed, setEncryptedAgreed] = useState<boolean>(true);
   const [tradeModalVisible, setTradeModalVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -160,20 +85,26 @@ export default function PersonalDetails() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'nin-id-upload',
-          kycData: {
-            ...savedKyc,
-            legalName: legalName.trim(),
-            avatarUri: avatarUri || undefined,
-            trade: selectedTrade.name,
-            tradeSubtitle: selectedTrade.subtitle,
-            yearsExperience,
-            phone: phone.trim(),
-            bio: bio.trim(),
-          },
+      const avatarPath = avatarUri ? await uploadImage('avatars', avatarUri, 'avatar') : null;
+
+      await saveStep({
+        next: 'nin-id-upload',
+        profile: { full_name: legalName.trim(), phone: phone.trim(), ...(avatarPath && { avatar_url: publicUrl('avatars', avatarPath) }) },
+        provider: {
+          trade: selectedTrade.id,
+          trade_subtitle: selectedTrade.subtitle,
+          years_experience: yearsExperience,
+          bio: bio.trim(),
+        },
+        kyc: { legal_name: legalName.trim(), phone: phone.trim(), avatar_path: avatarPath },
+        local: {
+          legalName: legalName.trim(),
+          avatarUri: avatarUri || undefined,
+          trade: selectedTrade.id,
+          tradeSubtitle: selectedTrade.subtitle,
+          yearsExperience,
+          phone: phone.trim(),
+          bio: bio.trim(),
         },
       });
 

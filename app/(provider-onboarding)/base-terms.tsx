@@ -1,7 +1,6 @@
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
-import { useUser } from '@clerk/clerk-expo';
+import { useKyc } from '@/context/KycContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -25,34 +24,26 @@ interface GpsCoords {
 }
 
 export default function BaseTerms() {
-  const { user } = useUser();
   const router = useRouter();
-
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, uploadImage } = useKyc();
 
   const [gpsData, setGpsData] = useState<GpsCoords | null>(() => {
     if (savedKyc.gpsLocation) {
       return {
         lat: savedKyc.gpsLocation.latitude,
         long: savedKyc.gpsLocation.longitude,
-        address: savedKyc.gpsLocation.address || 'Aba, Abia State',
+        address: savedKyc.gpsLocation.address || savedKyc.baseAddress || '',
         accuracy: 3,
       };
     }
-    // Default initial verified coordinates matching the registered base
-    return {
-      lat: 5.109,
-      long: 7.365,
-      address: 'Aba, Abia State',
-      accuracy: 3,
-    };
+    return null;
   });
 
   const [workshopPhotoUri, setWorkshopPhotoUri] = useState<string | null>(
     savedKyc.workshopPhotoUri || null
   );
   const [agreeSoleProvider, setAgreeSoleProvider] = useState<boolean>(
-    savedKyc.soleProviderAgreed ?? true
+    savedKyc.soleProviderAgreed ?? false
   );
   const [pickerModalVisible, setPickerModalVisible] = useState(false);
   const [capturingLocation, setCapturingLocation] = useState(false);
@@ -65,7 +56,7 @@ export default function BaseTerms() {
       if (status !== 'granted') {
         alertService.alert(
           'Location Permission Required',
-          'Permission is needed to read your GPS coordinates. We will keep your verified base position.'
+          'Location access is needed to verify your workshop or home base.'
         );
         return;
       }
@@ -74,7 +65,7 @@ export default function BaseTerms() {
         accuracy: Location.Accuracy.High,
       });
 
-      let addressStr = 'Aba, Abia State';
+      let addressStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
       try {
         const reverse = await Location.reverseGeocodeAsync({
           latitude: loc.coords.latitude,
@@ -82,26 +73,24 @@ export default function BaseTerms() {
         });
         if (reverse && reverse.length > 0) {
           const place = reverse[0];
-          const cityOrDistrict = place.city || place.subregion || place.name || 'Aba';
-          const region = place.region || 'Abia State';
-          addressStr = `${cityOrDistrict}, ${region}`;
+          const cityOrDistrict = place.city || place.subregion || place.name;
+          if (cityOrDistrict) {
+            addressStr = [cityOrDistrict, place.region].filter(Boolean).join(', ');
+          }
         }
       } catch { }
 
       setGpsData({
-        lat: Number(loc.coords.latitude.toFixed(3)),
-        long: Number(loc.coords.longitude.toFixed(3)),
+        lat: loc.coords.latitude,
+        long: loc.coords.longitude,
         address: addressStr,
         accuracy: Math.round(loc.coords.accuracy || 3),
       });
     } catch (err: any) {
-      // Fallback
-      setGpsData({
-        lat: 5.109,
-        long: 7.365,
-        address: 'Aba, Abia State',
-        accuracy: 3,
-      });
+      alertService.alert(
+        'Location Unavailable',
+        err.message || 'Could not read your GPS position. Make sure location is turned on and try again.'
+      );
     } finally {
       setCapturingLocation(false);
     }
@@ -164,22 +153,19 @@ export default function BaseTerms() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'guarantor',
-          kycData: {
-            ...savedKyc,
-            baseAddress: gpsData.address,
-            city: gpsData.address,
-            workshopPhotoUri,
-            gpsLocation: {
-              latitude: gpsData.lat,
-              longitude: gpsData.long,
-              address: gpsData.address,
-            },
-            soleProviderAgreed: true,
-          },
+      const workshopPhotoPath = await uploadImage('kyc', workshopPhotoUri, 'workshop');
+      const city = gpsData.address.split(',')[0].trim();
+
+      await saveStep({
+        next: 'guarantor',
+        provider: { base_address: gpsData.address, city, base_lat: gpsData.lat, base_lng: gpsData.long },
+        kyc: { workshop_photo_path: workshopPhotoPath, sole_provider_agreed: true },
+        local: {
+          baseAddress: gpsData.address,
+          city,
+          workshopPhotoUri,
+          gpsLocation: { latitude: gpsData.lat, longitude: gpsData.long, address: gpsData.address },
+          soleProviderAgreed: true,
         },
       });
 
@@ -267,7 +253,7 @@ export default function BaseTerms() {
           <View className="flex-row items-center">
             <Ionicons name="location-outline" size={15} color="#4B5563" />
             <Text className="text-xs font-medium text-gray-700 ml-1.5">
-              Lat: {gpsData.lat}, Long: {gpsData.long} ({gpsData.address})
+              Lat: {gpsData.lat.toFixed(3)}, Long: {gpsData.long.toFixed(3)} ({gpsData.address})
             </Text>
           </View>
         </View>

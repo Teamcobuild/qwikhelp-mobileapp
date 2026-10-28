@@ -1,4 +1,3 @@
-import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -13,7 +12,7 @@ import {
 } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
+import { useKyc } from '@/context/KycContext';
 
 const RELATIONSHIPS = [
   'Landlord / Property Owner',
@@ -25,28 +24,26 @@ const RELATIONSHIPS = [
 ];
 
 export default function Guarantor() {
-  const { user } = useUser();
   const router = useRouter();
-
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, submit } = useKyc();
 
   const [guarantorName, setGuarantorName] = useState<string>(
-    savedKyc.guarantorName || 'Chief Emeka Nwosu'
+    savedKyc.guarantorName || ''
   );
   const [relationship, setRelationship] = useState<string>(
     savedKyc.guarantorRelationship || RELATIONSHIPS[0]
   );
   const [guarantorPhone, setGuarantorPhone] = useState<string>(
-    savedKyc.guarantorPhone || '0803 492 8812'
+    savedKyc.guarantorPhone || ''
   );
   const [guarantorAddress, setGuarantorAddress] = useState<string>(
-    savedKyc.guarantorAddress || '14 Factory Road, Aba, Abia State'
+    savedKyc.guarantorAddress || ''
   );
   const [guarantorNin, setGuarantorNin] = useState<string>(
-    savedKyc.guarantorNin || '78491039482'
+    savedKyc.guarantorNin || ''
   );
   const [consentAgreed, setConsentAgreed] = useState<boolean>(
-    savedKyc.guarantorConsentAgreed ?? true
+    savedKyc.guarantorConsentAgreed ?? false
   );
   const [relationshipModalVisible, setRelationshipModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -86,21 +83,28 @@ export default function Guarantor() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'pending',
-          kycData: {
-            ...savedKyc,
-            guarantorName: guarantorName.trim(),
-            guarantorPhone: guarantorPhone.trim(),
-            guarantorRelationship: relationship,
-            guarantorAddress: guarantorAddress.trim(),
-            guarantorNin: cleanNin,
-            guarantorConsentAgreed: true,
-          },
+      await saveStep({
+        next: 'pending',
+        kyc: {
+          guarantor_name: guarantorName.trim(),
+          guarantor_phone: guarantorPhone.trim(),
+          guarantor_relationship: relationship,
+          guarantor_address: guarantorAddress.trim(),
+          guarantor_nin: cleanNin,
+          guarantor_consent_agreed: true,
+        },
+        local: {
+          guarantorName: guarantorName.trim(),
+          guarantorPhone: guarantorPhone.trim(),
+          guarantorRelationship: relationship,
+          guarantorAddress: guarantorAddress.trim(),
+          guarantorNin: cleanNin,
+          guarantorConsentAgreed: true,
         },
       });
+
+      // Validates every step server-side and moves the application to review.
+      await submit();
 
       router.replace('/(provider-onboarding)/pending');
     } catch (err: any) {

@@ -1,12 +1,15 @@
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
-import { KycData, OnboardingStep } from '@/types/provider';
+import { docTitle, tradeName } from '@/constants/kyc';
+import { useKyc } from '@/context/KycContext';
+import { OnboardingStep, ProviderStatus } from '@/types/provider';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  AppState,
   BackHandler,
   Modal,
   ScrollView,
@@ -61,6 +64,43 @@ const ONBOARDING_SECTIONS: SectionOption[] = [
   },
 ];
 
+interface StatusCopy {
+  title: string;
+  body: string;
+  pill: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+const SUBMITTED_COPY: StatusCopy = {
+  title: 'Application Under Review',
+  body: 'Thank you for submitting your verification details. We are carefully reviewing your documents to keep QwikHelp safe and trusted.',
+  pill: 'Pending Verification',
+  icon: 'hourglass-outline',
+};
+
+const STATUS_COPY: Record<ProviderStatus, StatusCopy> = {
+  draft: SUBMITTED_COPY,
+  submitted: SUBMITTED_COPY,
+  needs_changes: {
+    title: 'Updates Needed',
+    body: 'Our team needs you to update some of your details. Tap Edit Details, fix the sections below, and resubmit.',
+    pill: 'Action Required',
+    icon: 'alert-circle-outline',
+  },
+  rejected: {
+    title: 'Application Not Approved',
+    body: 'We could not verify your provider account. Contact support if you believe this is a mistake.',
+    pill: 'Not Approved',
+    icon: 'close-circle-outline',
+  },
+  approved: {
+    title: "You're Approved!",
+    body: 'Setting up your dashboard…',
+    pill: 'Approved',
+    icon: 'checkmark-circle-outline',
+  },
+};
+
 export default function PendingScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
@@ -69,7 +109,16 @@ export default function PendingScreen() {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
-  const kycData = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: kycData, status, reviewNote, reload } = useKyc();
+  const copy = STATUS_COPY[status];
+
+  // Re-check when the provider returns to the app (e.g. after an approval push).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reload();
+    });
+    return () => sub.remove();
+  }, [reload]);
 
   // Prevent routing back via hardware back button on Android
   useEffect(() => {
@@ -88,17 +137,18 @@ export default function PendingScreen() {
   const handleCheckStatus = async () => {
     setLoading(true);
     try {
-      await user?.reload();
-      const isVerified = (user?.unsafeMetadata as any)?.providerVerified === true;
+      const latest = await reload();
 
-      if (isVerified) {
+      if (latest === 'approved') {
+        // The onboarding layout syncs Clerk and the root gate redirects to the dashboard.
         alertService.alert('Congratulations!', 'Your provider account has been approved.');
-        router.replace('/(provider-tabs)/dashboard');
-      } else {
+      } else if (latest === 'submitted') {
         alertService.alert(
           'Still Under Review',
           'Your documents are currently undergoing review by our compliance team. We typically respond within 24 to 48 hours.'
         );
+      } else if (!latest) {
+        alertService.alert('Error', 'Could not verify status. Please check your internet connection.');
       }
     } catch (err: any) {
       alertService.alert(
@@ -129,18 +179,25 @@ export default function PendingScreen() {
       <View className="items-center mt-6">
         {/* Verification Icon Badge */}
         <View className="w-24 h-24 rounded-full bg-blue-50 items-center justify-center mb-6">
-          <Ionicons name="hourglass-outline" size={48} color="#2563EB" />
+          <Ionicons name={copy.icon} size={48} color="#2563EB" />
         </View>
 
         <Typography variant="h1" className="text-gray-900 font-bold text-center mb-2">
-          Application Under Review
+          {copy.title}
         </Typography>
         <Typography
           variant="body"
           className="text-gray-500 text-center text-sm mb-6 px-4 leading-5"
         >
-          Thank you for submitting your verification details. We are carefully reviewing your documents to keep QwikHelp safe and trusted.
+          {copy.body}
         </Typography>
+
+        {reviewNote && (status === 'needs_changes' || status === 'rejected') && (
+          <View className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
+            <Text className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Reviewer note</Text>
+            <Text className="text-sm text-amber-900 leading-5">{reviewNote}</Text>
+          </View>
+        )}
 
         {/* Application Summary Card */}
         <View className="w-full bg-white rounded-2xl p-5 mb-5 shadow-2xs">
@@ -161,7 +218,7 @@ export default function PendingScreen() {
             <View className="flex-row justify-between items-center">
               <Text className="text-xs text-gray-500">Service Category</Text>
               <Text className="text-xs font-semibold text-gray-800">
-                {kycData.trade || 'General Provider'}
+                {tradeName(kycData.trade) || 'General Provider'}
               </Text>
             </View>
 
@@ -177,7 +234,7 @@ export default function PendingScreen() {
               <View className="flex-row items-center">
                 <Ionicons name="checkmark-circle" size={14} color="#059669" />
                 <Text className="text-xs font-medium text-emerald-700 ml-1">
-                  {kycData.idType || 'NIN & ID Attached'}
+                  {docTitle(kycData.idType) || 'NIN & ID Attached'}
                 </Text>
               </View>
             </View>
@@ -203,7 +260,7 @@ export default function PendingScreen() {
               <Text className="text-xs text-gray-500">Status</Text>
               <View className="bg-amber-100 px-2.5 py-0.5 rounded-full">
                 <Text className="text-[11px] font-semibold text-amber-800">
-                  Pending Verification
+                  {copy.pill}
                 </Text>
               </View>
             </View>

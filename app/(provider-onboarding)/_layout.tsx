@@ -1,14 +1,42 @@
-import { useAuth } from '@clerk/clerk-expo';
+import { KycProvider, useKyc } from '@/context/KycContext';
+import { ONBOARDING_STEPS, OnboardingStep } from '@/types/provider';
+import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ONBOARDING_STEPS, OnboardingStep } from '@/types/provider';
 
 export default function ProviderOnboardingLayout() {
+  return (
+    <KycProvider>
+      <OnboardingShell />
+    </KycProvider>
+  );
+}
+
+function OnboardingShell() {
   const segments = useSegments();
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { user } = useUser();
+  const { ready, error, reload, status } = useKyc();
+
+  // Once the backend approves, wait for the Clerk publicMetadata mirror to land, then the
+  // root routing gate moves the provider to their dashboard.
+  useEffect(() => {
+    if (status !== 'approved' || !user) return;
+    let cancelled = false;
+    (async () => {
+      for (let attempt = 0; attempt < 10 && !cancelled; attempt++) {
+        await user.reload();
+        if ((user.publicMetadata as any)?.providerStatus === 'approved') return;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, user]);
 
   // Find current screen in provider-onboarding
   const currentScreen = (segments[segments.length - 1] || 'personal-details') as OnboardingStep;
@@ -28,6 +56,24 @@ export default function ProviderOnboardingLayout() {
       router.replace('/role-select');
     }
   };
+
+  if (!ready) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F9FAFB] items-center justify-center px-8">
+        {!error ? (
+          <ActivityIndicator size="large" color="#2563EB" />
+        ) : (
+          <>
+            <Text className="text-gray-900 font-bold text-lg mb-2 text-center">Couldn't load your details</Text>
+            <Text className="text-gray-500 text-center mb-6">{error}</Text>
+            <TouchableOpacity onPress={reload} className="bg-blue-600 px-8 py-3 rounded-xl">
+              <Text className="text-white font-bold">Try again</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F9FAFB]" edges={['top', 'left', 'right']}>

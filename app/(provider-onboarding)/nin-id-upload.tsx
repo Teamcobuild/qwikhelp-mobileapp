@@ -1,8 +1,8 @@
 import { DatePickerModal } from '@/components/modals/DatePickerModal';
 import { Typography } from '@/components/ui/Typography';
+import { DOC_TYPES } from '@/constants/kyc';
+import { dobToIso, useKyc } from '@/context/KycContext';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
-import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -18,71 +18,25 @@ import {
   View,
 } from 'react-native';
 
-interface DocTypeOption {
-  id: string;
-  title: string;
-  subtitle: string;
-  expectedLength: number;
-  label: string;
-  placeholder: string;
-}
-
-const DOC_TYPES: DocTypeOption[] = [
-  {
-    id: 'nin',
-    title: 'National ID (NIN)',
-    subtitle: 'Instant lookup',
-    expectedLength: 11,
-    label: 'Enter 11-digit NIN or BVN',
-    placeholder: '22345678901',
-  },
-  {
-    id: 'bvn',
-    title: 'Bank Verif. (BVN)',
-    subtitle: 'Instant lookup',
-    expectedLength: 11,
-    label: 'Enter 11-digit NIN or BVN',
-    placeholder: '22345678901',
-  },
-  {
-    id: 'drivers',
-    title: "Driver's License",
-    subtitle: 'Smart card OCR',
-    expectedLength: 12,
-    label: "Enter Driver's License Number",
-    placeholder: 'AAA00000AA00',
-  },
-  {
-    id: 'voters',
-    title: "Voter's Card (VIN)",
-    subtitle: 'PVC validation',
-    expectedLength: 19,
-    label: 'Enter 19-digit VIN',
-    placeholder: '90F5B00000000000000',
-  },
-];
-
 export default function NinIdUpload() {
-  const { user } = useUser();
   const router = useRouter();
-
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, uploadImage } = useKyc();
 
   const [selectedDocId, setSelectedDocId] = useState<string>(
     savedKyc.idType || 'nin'
   );
   const [documentNumber, setDocumentNumber] = useState<string>(
-    savedKyc.documentNumber || savedKyc.ninNumber || '22345678901'
+    savedKyc.documentNumber || savedKyc.ninNumber || ''
   );
   const [dob, setDob] = useState<string>(
-    savedKyc.dob || '14 / 08 / 1994'
+    savedKyc.dob || ''
   );
   const [idImageUri, setIdImageUri] = useState<string | null>(
     savedKyc.idImageUri || null
   );
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateObj, setDateObj] = useState<Date>(() => {
-    return new Date(1994, 7, 14);
+    return savedKyc.dob ? new Date(dobToIso(savedKyc.dob)) : new Date(1994, 7, 14);
   });
   const [pickerModalVisible, setPickerModalVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -153,6 +107,9 @@ export default function NinIdUpload() {
         'Please enter your full date of birth (DD / MM / YYYY).'
       );
     }
+    if ((currentDoc.id === 'nin' || currentDoc.id === 'bvn') && !/^\d{11}$/.test(cleanedDocNum)) {
+      return alertService.alert('Invalid Number', `${currentDoc.title} must be exactly 11 digits.`);
+    }
     if (!idImageUri) {
       return alertService.alert(
         'Document Photo Required',
@@ -162,18 +119,24 @@ export default function NinIdUpload() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'biometric-check',
-          kycData: {
-            ...savedKyc,
-            ninNumber: selectedDocId === 'nin' ? cleanedDocNum : savedKyc.ninNumber || cleanedDocNum,
-            documentNumber: cleanedDocNum,
-            idType: currentDoc.title,
-            dob: dob.trim(),
-            idImageUri,
-          },
+      const idImagePath = await uploadImage('kyc', idImageUri, 'id-document');
+      const ninNumber = currentDoc.id === 'nin' ? cleanedDocNum : savedKyc.ninNumber;
+
+      await saveStep({
+        next: 'biometric-check',
+        kyc: {
+          id_type: currentDoc.id,
+          document_number: cleanedDocNum,
+          nin: ninNumber ?? null,
+          dob: dobToIso(dob),
+          id_image_path: idImagePath,
+        },
+        local: {
+          ninNumber,
+          documentNumber: cleanedDocNum,
+          idType: currentDoc.id,
+          dob: dob.trim(),
+          idImageUri,
         },
       });
 

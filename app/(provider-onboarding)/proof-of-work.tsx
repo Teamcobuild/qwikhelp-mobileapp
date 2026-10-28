@@ -1,7 +1,6 @@
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
-import { KycData } from '@/types/provider';
-import { useUser } from '@clerk/clerk-expo';
+import { useKyc } from '@/context/KycContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -26,16 +25,14 @@ const MAX_PHOTOS = 5;
 const MIN_PHOTOS = 3;
 
 export default function ProofOfWork() {
-  const { user } = useUser();
   const router = useRouter();
-
-  const savedKyc = ((user?.unsafeMetadata as any)?.kycData || {}) as KycData;
+  const { kyc: savedKyc, saveStep, uploadImage } = useKyc();
 
   const [photos, setPhotos] = useState<WorkPhoto[]>(() => {
     const uris = savedKyc.proofOfWorkUris || [];
     return uris.map((uri, idx) => ({
       uri,
-      title: `Project #${idx + 1}`,
+      title: savedKyc.proofOfWorkTitles?.[idx] || `Project #${idx + 1}`,
     }));
   });
   const [pickerModalVisible, setPickerModalVisible] = useState(false);
@@ -112,15 +109,14 @@ export default function ProofOfWork() {
 
     setLoading(true);
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          onboardingStep: 'base-terms',
-          kycData: {
-            ...savedKyc,
-            proofOfWorkUris: photos.map((p) => p.uri),
-          },
-        },
+      const paths: string[] = [];
+      for (const [idx, photo] of photos.entries()) {
+        paths.push(await uploadImage('portfolio', photo.uri, `work-${idx + 1}`));
+      }
+      await saveStep({
+        next: 'base-terms',
+        kyc: { proof_of_work_paths: paths, proof_of_work_titles: photos.map((p) => p.title) },
+        local: { proofOfWorkUris: photos.map((p) => p.uri), proofOfWorkTitles: photos.map((p) => p.title) },
       });
 
       router.push('/(provider-onboarding)/base-terms');
