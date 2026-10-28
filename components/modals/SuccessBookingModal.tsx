@@ -6,44 +6,31 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 interface SuccessBookingModalProps {
   visible: boolean;
   onClose: () => void;
-  jobData?: {
-    category: string;
-    duration: string;
-    date: string;
-    time: string;
-    amount: string;
-  };
+  jobId?: string;
+  dispatched: number;
 }
 
-export const SuccessBookingModal = ({ visible, onClose, jobData }: SuccessBookingModalProps) => {
+export const SuccessBookingModal = ({ visible, onClose, jobId, dispatched }: SuccessBookingModalProps) => {
   const router = useRouter();
 
-  const handleClose = () => {
+  const goToOffers = React.useCallback(() => {
     onClose();
-    router.back();
-  };
+    // Replace the form so back doesn't return to a submitted request.
+    if (jobId) router.replace({ pathname: '/booking/offers/[jobId]', params: { jobId } });
+  }, [jobId, onClose, router]);
 
   React.useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (visible) {
-      timeout = setTimeout(() => {
-        onClose();
-        // Replace current screen so back button doesn't come back to success modal
-        router.replace({
-          pathname: '/booking/offers/mock-job-123',
-          params: jobData
-        });
-      }, 5000);
-    }
+    if (!visible) return;
+    const timeout = setTimeout(goToOffers, 4000);
     return () => clearTimeout(timeout);
-  }, [visible, router, onClose]);
+  }, [visible, goToOffers]);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View className="items-end w-full">
-            <TouchableOpacity onPress={handleClose}>
+            <TouchableOpacity onPress={goToOffers}>
               <Ionicons name="close" size={24} color="black" />
             </TouchableOpacity>
           </View>
@@ -53,13 +40,15 @@ export const SuccessBookingModal = ({ visible, onClose, jobData }: SuccessBookin
             </View>
             <Text className="font-bold text-xl mb-2 text-center">Offer Sent!</Text>
             <Text className="text-gray-500 text-center mb-8 px-4">
-              Please wait for some time so available providers can review and accept your offer.
+              {dispatched > 0
+                ? `We notified ${dispatched} verified provider${dispatched === 1 ? '' : 's'} near you. Offers will appear as they respond.`
+                : "We're looking for verified providers near you. Offers will appear here as they respond."}
             </Text>
             <TouchableOpacity
-              onPress={handleClose}
+              onPress={goToOffers}
               className="w-full bg-blue-600 py-4 px-6 rounded-xl items-center"
             >
-              <Text className="text-white font-bold">Got it</Text>
+              <Text className="text-white font-bold">View Offers</Text>
             </TouchableOpacity>
           </View>
         </View>

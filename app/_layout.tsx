@@ -9,6 +9,7 @@ import { LocationProvider } from '../context/LocationContext';
 import { LocationModal } from '../components/modals/LocationModal';
 import { CustomAlert } from '../components/modals/CustomAlert';
 import { ProviderStatus } from '../types/provider';
+import { useSupabase } from '../lib/supabase';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -19,12 +20,28 @@ function InitialLayout() {
   const { user } = useUser();
   const segments = useSegments();
   const router = useRouter();
+  const supabase = useSupabase();
+
+  // Every signed-in user needs a profiles row (role + display name) before using the backend.
+  // Providers also get one from KycContext; this covers customers.
+  const role = user?.unsafeMetadata?.role as 'customer' | 'provider' | undefined;
+  useEffect(() => {
+    if (!isSignedIn || !user || role !== 'customer') return;
+    supabase
+      .from('profiles')
+      .upsert(
+        { id: user.id, role, full_name: user.fullName, avatar_url: user.imageUrl },
+        { onConflict: 'id', ignoreDuplicates: true }
+      )
+      .then(({ error }) => {
+        if (error) console.warn('Profile setup failed:', error.message);
+      });
+  }, [isSignedIn, user?.id, role, supabase]);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (isSignedIn && !user) return;
 
-    const role = user?.unsafeMetadata?.role as string | undefined;
     // Written only by the backend (provider-status-sync edge function).
     const providerStatus = user?.publicMetadata?.providerStatus as ProviderStatus | undefined;
     const providerVerified = providerStatus === 'approved';
@@ -39,6 +56,7 @@ function InitialLayout() {
     const inChat = segments[0] === 'chat';
     const inProviderProfile = segments[0] === 'provider-profile';
     const inDispute = segments[0] === 'dispute';
+    const inRequest = segments[0] === 'request';
     const inVerificationStatus = segments[0] === 'verification-status';
 
     if (!isSignedIn) {
@@ -76,7 +94,7 @@ function InitialLayout() {
       }
 
       // Allow providers to access provider tabs and shared screens
-      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inVerificationStatus;
+      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inVerificationStatus || inRequest;
       if (providerVerified && !inProviderAllowed) {
         router.replace('/(provider-tabs)/dashboard');
       }
@@ -115,6 +133,7 @@ function InitialLayout() {
       <Stack.Screen name="notifications" />
       <Stack.Screen name="verification-status" />
       <Stack.Screen name="booking/[category]" />
+      <Stack.Screen name="request/[jobId]" />
     </Stack>
   );
 }

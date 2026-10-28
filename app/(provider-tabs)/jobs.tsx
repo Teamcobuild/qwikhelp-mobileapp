@@ -1,10 +1,23 @@
+import { serviceName } from '@/constants/services';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { alertService } from '@/lib/AlertService';
+import {
+  BookingItem,
+  BookingStatus,
+  errorMessage,
+  FeedItem,
+  formatJobDate,
+  formatJobTime,
+  formatNaira,
+} from '@/lib/broadcast';
+import { useSupabase } from '@/lib/supabase';
+import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Image,
-  Linking,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,79 +26,102 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type JobStatusLabel = 'Confirmed' | 'On the Way' | 'In Progress' | 'Completed' | 'Cancelled' | 'Disputed' | 'Pending Quote';
+
 interface Job {
   id: string;
+  jobId: string;
+  kind: 'booking' | 'quote';
   customerName: string;
-  avatarSeed: string;
   avatarBg: string;
   service: string;
   address: string;
-  status: 'In Progress' | 'Confirmed' | 'Completed' | 'Pending Quote';
+  status: JobStatusLabel;
   date: string;
   amount: string;
-  phone: string;
 }
 
-const ALL_JOBS: Job[] = [
-  {
-    id: '1',
-    customerName: 'Nwabueze Chukwumamkpam Nwabueze',
-    avatarSeed: 'Nwabueze',
-    avatarBg: '#B8E6CB',
-    service: 'Deep House Cleaning',
-    address: '70 Asa Road, Aba, Abia State',
-    status: 'Confirmed',
-    date: 'Today, 2:00 PM',
-    amount: '₦25,000',
-    phone: '+2348012345678',
-  },
-  {
-    id: '2',
-    customerName: 'Amaka Johnson',
-    avatarSeed: 'Amaka',
-    avatarBg: '#FED7AA',
-    service: 'Electrical Inspection',
-    address: '14 Okpara Avenue, Enugu',
-    status: 'Pending Quote',
-    date: 'Pending Quote',
-    amount: '₦35,000',
-    phone: '+2348087654321',
-  },
-  {
-    id: '3',
-    customerName: 'Tunde Balogun',
-    avatarSeed: 'Tunde',
-    avatarBg: '#DDD6FE',
-    service: 'Plumbing Repair & Pipe Fitting',
-    address: '28 Victoria Island, Lagos',
-    status: 'In Progress',
-    date: 'Started 1h ago',
-    amount: '₦45,000',
-    phone: '+2348099887766',
-  },
-  {
-    id: '4',
-    customerName: 'Chioma Adeyemi',
-    avatarSeed: 'Chioma',
-    avatarBg: '#BFDBFE',
-    service: 'Air Conditioner Servicing',
-    address: '12 Isaac Boro Way, Port Harcourt',
-    status: 'Completed',
-    date: 'Yesterday, 5:30 PM',
-    amount: '₦20,000',
-    phone: '+2348055443322',
-  },
-];
+const AVATAR_BGS = ['#B8E6CB', '#FED7AA', '#DDD6FE', '#BFDBFE', '#FBCFE8'];
+const avatarBgFor = (name: string) => AVATAR_BGS[name.charCodeAt(0) % AVATAR_BGS.length];
+
+const BOOKING_LABEL: Record<BookingStatus, JobStatusLabel> = {
+  confirmed: 'Confirmed',
+  en_route: 'On the Way',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  disputed: 'Disputed',
+};
 
 const JOB_FILTERS = ['All', 'Active', 'Pending', 'Completed'] as const;
 
+// In-app chat and calls only; phone numbers are never shared.
+const comingSoon = () =>
+  alertService.alert('Coming Soon', 'In-app chat and calls with customers are coming in the next update.');
+
 export default function Jobs() {
   const router = useRouter();
+  const { user } = useUser();
+  const supabase = useSupabase();
   const [activeFilter, setActiveFilter] = useState<typeof JOB_FILTERS[number]>('All');
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filtered = ALL_JOBS.filter((job) => {
+  const load = useCallback(async () => {
+    const [bookingsRes, feedRes] = await Promise.all([
+      supabase.rpc('get_my_bookings'),
+      supabase.rpc('get_provider_feed'),
+    ]);
+    if (bookingsRes.error) alertService.alert('Error', errorMessage(bookingsRes.error));
+
+    const bookings = ((bookingsRes.data ?? []) as BookingItem[])
+      .filter((b) => b.role === 'provider')
+      .map<Job>((b) => ({
+        id: `bk-${b.id}`,
+        jobId: b.job_id,
+        kind: 'booking',
+        customerName: b.customer_name,
+        avatarBg: avatarBgFor(b.customer_name),
+        service: serviceName(b.category),
+        address: b.landmark,
+        status: BOOKING_LABEL[b.status],
+        date: `${formatJobDate(b.scheduled_at)}, ${formatJobTime(b.scheduled_at)}`,
+        amount: formatNaira(b.agreed_amount),
+      }));
+
+    const quotes = ((feedRes.data ?? []) as FeedItem[])
+      .filter((f) => f.offer)
+      .map<Job>((f) => ({
+        id: `q-${f.id}`,
+        jobId: f.id,
+        kind: 'quote',
+        customerName: f.customer_name,
+        avatarBg: avatarBgFor(f.customer_name),
+        service: serviceName(f.category),
+        address: `${f.landmark} • ${f.distance_km}km away`,
+        status: 'Pending Quote',
+        date: `${formatJobDate(f.scheduled_at)}, ${formatJobTime(f.scheduled_at)}`,
+        amount: formatNaira(f.offer!.amount),
+      }));
+
+    setJobs([...quotes, ...bookings]);
+    setLoading(false);
+    setRefreshing(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useRealtimeRefresh(user ? `provider-jobs:${user.id}` : null, [
+    { table: 'bookings', filter: `provider_id=eq.${user?.id}` },
+    { table: 'offers', filter: `provider_id=eq.${user?.id}` },
+  ], load);
+
+  const filtered = jobs.filter((job) => {
     if (activeFilter === 'All') return true;
-    if (activeFilter === 'Active') return job.status === 'Confirmed' || job.status === 'In Progress';
+    if (activeFilter === 'Active') return ['Confirmed', 'On the Way', 'In Progress'].includes(job.status);
     if (activeFilter === 'Pending') return job.status === 'Pending Quote';
     if (activeFilter === 'Completed') return job.status === 'Completed';
     return true;
@@ -94,23 +130,30 @@ export default function Jobs() {
   const getStatusBadge = (status: Job['status']) => {
     switch (status) {
       case 'Confirmed':
+      case 'On the Way':
       case 'In Progress':
         return { bg: 'bg-[#DCFCE7]', text: 'text-[#16A34A]' };
       case 'Pending Quote':
         return { bg: 'bg-[#FEF3C7]', text: 'text-[#D97706]' };
-      case 'Completed':
+      case 'Disputed':
+        return { bg: 'bg-[#FEE2E2]', text: 'text-[#DC2626]' };
+      default:
         return { bg: 'bg-[#F3F4F6]', text: 'text-[#4B5563]' };
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-[#FAFAFA]" edges={['top']}>
-      <ScrollView className="flex-1 px-4 pt-3" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4 pt-3"
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between mt-2 mb-4">
           <Text className="text-2xl font-bold text-gray-900">My Jobs</Text>
           <View className="bg-blue-50 px-3 py-1 rounded-full">
-            <Text className="text-blue-700 text-xs font-bold">{ALL_JOBS.length} Total</Text>
+            <Text className="text-blue-700 text-xs font-bold">{jobs.length} Total</Text>
           </View>
         </View>
 
@@ -146,11 +189,23 @@ export default function Jobs() {
 
         {/* Jobs List */}
         <View className="pb-10">
+          {loading && <ActivityIndicator color="#2563EB" className="mt-10" />}
+          {!loading && filtered.length === 0 && (
+            <View className="bg-white rounded-[22px] border border-gray-200 p-8 items-center justify-center my-4">
+              <Ionicons name="briefcase-outline" size={36} color="#9CA3AF" />
+              <Text className="text-base font-bold text-gray-900 mt-3">No jobs yet</Text>
+              <Text className="text-xs text-gray-500 text-center mt-1">
+                Jobs appear here once a customer books you or you send a quote.
+              </Text>
+            </View>
+          )}
           {filtered.map((job) => {
             const badge = getStatusBadge(job.status);
             return (
-              <View
+              <TouchableOpacity
                 key={job.id}
+                activeOpacity={job.kind === 'quote' ? 0.85 : 1}
+                onPress={() => job.kind === 'quote' && router.push({ pathname: '/request/[jobId]', params: { jobId: job.jobId } })}
                 style={styles.card}
                 className="bg-white rounded-[22px] border border-gray-200 p-4 mb-4"
               >
@@ -160,19 +215,13 @@ export default function Jobs() {
                       style={{ backgroundColor: job.avatarBg }}
                       className="w-12 h-12 rounded-xl items-center justify-center overflow-hidden mr-3"
                     >
-                      <Image
-                        source={{
-                          uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${job.avatarSeed}&backgroundColor=${job.avatarBg.replace('#', '')}&facialHair=beardLight`,
-                        }}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
+                      <Text className="text-lg font-bold text-gray-800">{job.customerName.charAt(0)}</Text>
                     </View>
                     <View className="flex-1">
                       <Text className="text-sm font-bold text-gray-900" numberOfLines={1}>
                         {job.customerName}
                       </Text>
-                      <Text className="text-xs text-gray-500 font-medium">{job.service}</Text>
+                      <Text className="text-xs text-gray-500 font-medium">{job.service} • {job.date}</Text>
                     </View>
                   </View>
 
@@ -195,7 +244,7 @@ export default function Jobs() {
                 {/* Action Buttons */}
                 <View className="flex-row gap-2.5 mt-3 pt-2">
                   <TouchableOpacity
-                    onPress={() => router.push(`/chat/${job.id}` as any)}
+                    onPress={comingSoon}
                     className="flex-1 bg-blue-50 py-2.5 rounded-xl items-center flex-row justify-center"
                   >
                     <Ionicons name="chatbubble-ellipses-outline" size={15} color="#2563EB" />
@@ -203,14 +252,14 @@ export default function Jobs() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(`tel:${job.phone}`)}
+                    onPress={comingSoon}
                     className="flex-1 bg-gray-50 py-2.5 rounded-xl items-center flex-row justify-center border border-gray-200"
                   >
                     <Ionicons name="call-outline" size={15} color="#374151" />
-                    <Text className="text-gray-700 font-bold text-xs ml-1.5">Call</Text>
+                    <Text className="text-gray-700 font-bold text-xs ml-1.5">Call in App</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>

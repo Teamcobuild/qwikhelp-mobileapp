@@ -1,23 +1,31 @@
-import { alertService } from '@/lib/AlertService';
 import { useNotifications } from '@/context/NotificationContext';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
+import { alertService } from '@/lib/AlertService';
+import {
+  BookingItem,
+  errorMessage,
+  FeedItem,
+  formatJobDate,
+  formatJobTime,
+  formatNaira,
+} from '@/lib/broadcast';
 import { useSupabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Modal,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,60 +37,75 @@ interface DashboardProfile {
   review_count: number;
 }
 
+type JobCardStatus = 'New Request' | 'Pending Quote' | 'Final Offer' | 'Agreed' | 'Confirmed' | 'Upcoming' | 'Completed';
+
 interface JobItem {
   id: string;
+  kind: 'request' | 'booking';
+  jobId: string;
+  offerId?: string;
   customerName: string;
   avatarBg: string;
-  avatarSeed: string;
-  status: 'Confirmed' | 'Pending Quote' | 'Upcoming' | 'Completed';
-  category: 'Today' | 'Pending Quotes' | 'Upcoming';
+  status: JobCardStatus;
+  category: 'New Requests' | 'Pending Quotes' | 'Today' | 'Upcoming' | 'Past';
   location: string;
   description: string;
-  price?: string;
-  phone?: string;
+  price: string;
+  when: string;
 }
 
-const INITIAL_JOBS: JobItem[] = [
-  {
-    id: '1',
-    customerName: 'Nwabueze Chukwumamkpam Nwabueze',
-    avatarBg: '#B8E6CB',
-    avatarSeed: 'Nwabueze',
-    status: 'Confirmed',
-    category: 'Today',
-    location: '70 Asa Road, Aba, Abia State',
-    description: 'I want you to clean my house...',
-    price: '₦25,000',
-    phone: '+2348012345678',
-  },
-  {
-    id: '2',
-    customerName: 'Amaka Johnson',
-    avatarBg: '#FED7AA',
-    avatarSeed: 'Amaka',
-    status: 'Pending Quote',
-    category: 'Pending Quotes',
-    location: '14 Okpara Avenue, Enugu, Enugu State',
-    description: 'Electrical wiring inspection and inverter check for a 3-bedroom flat.',
-    price: '₦35,000',
-    phone: '+2348087654321',
-  },
-  {
-    id: '3',
-    customerName: 'Tunde Balogun',
-    avatarBg: '#DDD6FE',
-    avatarSeed: 'Tunde',
-    status: 'Upcoming',
-    category: 'Upcoming',
-    location: '28 Victoria Island, Lagos State',
-    description: 'Full house plumbing maintenance and kitchen sink replacement.',
-    price: '₦45,000',
-    phone: '+2348099887766',
-  },
-];
+const AVATAR_BGS = ['#B8E6CB', '#FED7AA', '#DDD6FE', '#BFDBFE', '#FBCFE8'];
+const avatarBgFor = (name: string) => AVATAR_BGS[name.charCodeAt(0) % AVATAR_BGS.length];
 
-const FILTER_TABS = ['All', 'Pending Quotes', 'Today', 'Upcoming'] as const;
+const isToday = (iso: string) => new Date(iso).toDateString() === new Date().toDateString();
+
+function feedToJob(f: FeedItem): JobItem {
+  const status: JobCardStatus = !f.offer
+    ? 'New Request'
+    : f.offer.status === 'agreed'
+      ? 'Agreed'
+      : f.offer.status === 'awaiting_provider'
+        ? 'Final Offer'
+        : 'Pending Quote';
+  return {
+    id: `req-${f.id}`,
+    kind: 'request',
+    jobId: f.id,
+    offerId: f.offer?.id,
+    customerName: f.customer_name,
+    avatarBg: avatarBgFor(f.customer_name),
+    status,
+    category: f.offer ? 'Pending Quotes' : 'New Requests',
+    location: `${f.landmark} • ${f.distance_km}km away`,
+    description: f.description,
+    price: formatNaira(f.offer?.amount ?? f.budget),
+    when: `${formatJobDate(f.scheduled_at)}, ${formatJobTime(f.scheduled_at)}`,
+  };
+}
+
+function bookingToJob(b: BookingItem): JobItem {
+  const done = b.status === 'completed' || b.status === 'cancelled';
+  return {
+    id: `bk-${b.id}`,
+    kind: 'booking',
+    jobId: b.job_id,
+    customerName: b.customer_name,
+    avatarBg: avatarBgFor(b.customer_name),
+    status: b.status === 'completed' ? 'Completed' : isToday(b.scheduled_at) ? 'Confirmed' : 'Upcoming',
+    category: done ? 'Past' : isToday(b.scheduled_at) ? 'Today' : 'Upcoming',
+    location: b.landmark,
+    description: b.description,
+    price: formatNaira(b.agreed_amount),
+    when: `${formatJobDate(b.scheduled_at)}, ${formatJobTime(b.scheduled_at)}`,
+  };
+}
+
+const FILTER_TABS = ['All', 'New Requests', 'Pending Quotes', 'Today', 'Upcoming'] as const;
 type FilterTab = typeof FILTER_TABS[number];
+
+// In-app chat and calls only; phone numbers are never shared.
+const comingSoon = () =>
+  alertService.alert('Coming Soon', 'In-app chat and calls with customers are coming in the next update.');
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -102,16 +125,22 @@ export default function Dashboard() {
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedJobForActions, setSelectedJobForActions] = useState<JobItem | null>(null);
 
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const knownRequests = useRef<Set<string> | null>(null);
+
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [{ data: p, error }, { data: me }] = await Promise.all([
+      const [{ data: p, error }, { data: me }, feedRes, bookingsRes] = await Promise.all([
         supabase
           .from('provider_profiles')
           .select('trade, city, is_online, rating, review_count')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle(),
+        supabase.rpc('get_provider_feed'),
+        supabase.rpc('get_my_bookings'),
       ]);
 
       if (error && error.code !== 'PGRST116') {
@@ -120,6 +149,19 @@ export default function Dashboard() {
       setProfile(p);
       setOnline(p?.is_online ?? false);
       setAvatarUrl(me?.avatar_url ?? null);
+
+      if (feedRes.error) console.warn('Feed error:', errorMessage(feedRes.error));
+      const nextFeed = (feedRes.data ?? []) as FeedItem[];
+      // Buzz when a new request arrives while the dashboard is open (not on first load).
+      const ids = new Set(nextFeed.map((f) => f.id));
+      if (knownRequests.current && nextFeed.some((f) => !knownRequests.current!.has(f.id))) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      knownRequests.current = ids;
+      setFeed(nextFeed);
+
+      if (bookingsRes.error) console.warn('Bookings error:', errorMessage(bookingsRes.error));
+      setBookings(((bookingsRes.data ?? []) as BookingItem[]).filter((b) => b.role === 'provider'));
     } catch (err: any) {
       console.warn('Load dashboard error:', err.message);
     } finally {
@@ -131,6 +173,12 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useRealtimeRefresh(user ? `provider-dashboard:${user.id}` : null, [
+    { table: 'job_dispatches', filter: `provider_id=eq.${user?.id}` },
+    { table: 'offers', filter: `provider_id=eq.${user?.id}` },
+    { table: 'bookings', filter: `provider_id=eq.${user?.id}` },
+  ], loadData);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -164,21 +212,56 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
-  const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'Emeka';
+  const firstName = user?.firstName || user?.fullName?.split(' ')[0] || '';
+
+  const allJobs = useMemo(
+    () => [...feed.map(feedToJob), ...bookings.map(bookingToJob).filter((j) => j.category !== 'Past')],
+    [feed, bookings]
+  );
+
+  const metrics = useMemo(() => ({
+    today: bookings.filter((b) => isToday(b.scheduled_at) && b.status !== 'cancelled').length,
+    pendingQuotes: feed.filter((f) => f.offer).length,
+    completed: bookings.filter((b) => b.status === 'completed').length,
+    // Becomes the wallet balance once Paystack payouts are wired up.
+    balance: bookings
+      .filter((b) => b.status === 'completed' && b.payment_status === 'paid')
+      .reduce((sum, b) => sum + b.agreed_amount, 0),
+  }), [feed, bookings]);
 
   // Filter jobs
-  const filteredJobs = INITIAL_JOBS.filter((job) => {
+  const filteredJobs = allJobs.filter((job) => {
     if (selectedFilter === 'All') return true;
     return job.category === selectedFilter;
   });
 
+  const openJob = (job: JobItem) => {
+    if (job.kind === 'request') router.push({ pathname: '/request/[jobId]', params: { jobId: job.jobId } });
+    else router.push('/(provider-tabs)/jobs');
+  };
+
+  const declineJob = async (job: JobItem) => {
+    const { error } = job.offerId
+      ? await supabase.rpc('withdraw_offer', { p_offer: job.offerId })
+      : await supabase.rpc('dismiss_job', { p_job: job.jobId });
+    if (error) alertService.alert('Error', errorMessage(error));
+    loadData();
+  };
+
   const getStatusBadgeStyle = (status: JobItem['status']) => {
     switch (status) {
+      case 'New Request':
+        return {
+          bg: 'bg-[#DBEAFE]',
+          text: 'text-[#2563EB]',
+        };
+      case 'Agreed':
       case 'Confirmed':
         return {
           bg: 'bg-[#DCFCE7]',
           text: 'text-[#16A34A]',
         };
+      case 'Final Offer':
       case 'Pending Quote':
         return {
           bg: 'bg-[#FEF3C7]',
@@ -276,34 +359,34 @@ export default function Dashboard() {
           {/* Card 1: Today's Bookings */}
           <View
             style={styles.card}
-            className="w-[48%] bg-white rounded-[20px] border border-gray-200 p-4 h-[126px] justify-between mb-3.5"
+            className="w-[48%] bg-white rounded-[20px]  p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Today’s Bookings</Text>
-            <Text className="text-[28px] font-bold text-blue-600">12</Text>
+            <Text className="text-[28px] font-bold text-blue-600">{metrics.today}</Text>
           </View>
 
           {/* Card 2: Pending Quote's */}
           <View
             style={styles.card}
-            className="w-[48%] bg-white rounded-[20px] border border-gray-200 p-4 h-[126px] justify-between mb-3.5"
+            className="w-[48%] bg-white rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Pending Quote’s</Text>
-            <Text className="text-[28px] font-bold text-blue-600">2</Text>
+            <Text className="text-[28px] font-bold text-blue-600">{metrics.pendingQuotes}</Text>
           </View>
 
           {/* Card 3: Completed Bookings */}
           <View
             style={styles.card}
-            className="w-[48%] bg-white rounded-[20px] border border-gray-200 p-4 h-[126px] justify-between mb-3.5"
+            className="w-[48%] bg-white rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Completed Bookings</Text>
-            <Text className="text-[28px] font-bold text-blue-600">12</Text>
+            <Text className="text-[28px] font-bold text-blue-600">{metrics.completed}</Text>
           </View>
 
           {/* Card 4: Account Balance (Navy Blue) */}
           <View
             style={styles.card}
-            className="w-[48%] bg-[#0B3356] rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
+            className="w-[48%] bg-blue-600 rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <View className="flex-row items-center justify-between">
               <Text className="text-[13px] font-bold text-white">Account Balance</Text>
@@ -319,7 +402,7 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
             <Text className="text-[22px] font-bold text-white tracking-tight" numberOfLines={1}>
-              {balanceVisible ? '₦100,000' : '₦••••••••'}
+              {balanceVisible ? formatNaira(metrics.balance) : '₦••••••••'}
             </Text>
           </View>
         </View>
@@ -338,14 +421,12 @@ export default function Dashboard() {
                 key={tab}
                 onPress={() => setSelectedFilter(tab)}
                 activeOpacity={0.7}
-                className={`py-2.5 px-5 rounded-xl mr-2.5 ${
-                  isActive ? 'bg-blue-600' : 'bg-white border border-gray-200'
-                }`}
+                className={`py-2.5 px-5 rounded-xl mr-2.5 ${isActive ? 'bg-blue-600' : 'bg-white border border-gray-200'
+                  }`}
               >
                 <Text
-                  className={`text-sm ${
-                    isActive ? 'text-white font-bold' : 'text-gray-500 font-medium'
-                  }`}
+                  className={`text-sm ${isActive ? 'text-white font-bold' : 'text-gray-500 font-medium'
+                    }`}
                 >
                   {tab}
                 </Text>
@@ -359,17 +440,23 @@ export default function Dashboard() {
           {filteredJobs.length === 0 ? (
             <View className="bg-white rounded-[22px] border border-gray-200 p-8 items-center justify-center my-4">
               <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
-              <Text className="text-base font-bold text-gray-900 mt-3">No bookings found</Text>
+              <Text className="text-base font-bold text-gray-900 mt-3">
+                {selectedFilter === 'New Requests' || selectedFilter === 'All' ? 'No requests yet' : 'No bookings found'}
+              </Text>
               <Text className="text-xs text-gray-500 text-center mt-1">
-                There are currently no bookings under the &quot;{selectedFilter}&quot; filter.
+                {online
+                  ? `Nothing under "${selectedFilter}" right now. New job requests near you will appear here.`
+                  : 'You are offline. Set yourself Active to receive job requests near you.'}
               </Text>
             </View>
           ) : (
             filteredJobs.map((job) => {
               const badge = getStatusBadgeStyle(job.status);
               return (
-                <View
+                <TouchableOpacity
                   key={job.id}
+                  activeOpacity={0.85}
+                  onPress={() => openJob(job)}
                   style={styles.card}
                   className="bg-white rounded-[22px] border border-gray-200 p-4 mb-4"
                 >
@@ -379,13 +466,7 @@ export default function Dashboard() {
                       style={{ backgroundColor: job.avatarBg }}
                       className="w-[68px] h-[68px] rounded-2xl items-center justify-center overflow-hidden"
                     >
-                      <Image
-                        source={{
-                          uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${job.avatarSeed}&backgroundColor=${job.avatarBg.replace('#', '')}&facialHair=beardLight`,
-                        }}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
+                      <Text className="text-[26px] font-bold text-gray-800">{job.customerName.charAt(0)}</Text>
                     </View>
 
                     <TouchableOpacity
@@ -402,9 +483,12 @@ export default function Dashboard() {
                     {job.customerName}
                   </Text>
 
-                  {/* Status Badge */}
-                  <View className={`self-start px-2.5 py-0.5 rounded-md mt-1.5 ${badge.bg}`}>
-                    <Text className={`text-xs font-bold ${badge.text}`}>{job.status}</Text>
+                  {/* Status Badge & Price */}
+                  <View className="flex-row items-center justify-between mt-1.5">
+                    <View className={`px-2.5 py-0.5 rounded-md ${badge.bg}`}>
+                      <Text className={`text-xs font-bold ${badge.text}`}>{job.status}</Text>
+                    </View>
+                    <Text className="text-sm font-bold text-blue-600">{job.price}</Text>
                   </View>
 
                   {/* Location Row */}
@@ -419,7 +503,8 @@ export default function Dashboard() {
                   <Text className="text-sm font-medium text-gray-900 mt-2 leading-5" numberOfLines={2}>
                     {job.description}
                   </Text>
-                </View>
+                  <Text className="text-xs text-gray-500 mt-1.5">{job.when}</Text>
+                </TouchableOpacity>
               );
             })
           )}
@@ -447,9 +532,8 @@ export default function Dashboard() {
                 <TouchableOpacity
                   onPress={() => handleUpdateStatus(true)}
                   activeOpacity={0.7}
-                  className={`flex-row items-center p-4 rounded-2xl mb-3 border ${
-                    online ? 'border-emerald-500 bg-emerald-50/40' : 'border-gray-200 bg-white'
-                  }`}
+                  className={`flex-row items-center p-4 rounded-2xl mb-3 border ${online ? 'border-emerald-500 bg-emerald-50/40' : 'border-gray-200 bg-white'
+                    }`}
                 >
                   <View className="w-4 h-4 rounded-full border border-emerald-500 items-center justify-center mr-3 bg-emerald-100">
                     <View className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -467,9 +551,8 @@ export default function Dashboard() {
                 <TouchableOpacity
                   onPress={() => handleUpdateStatus(false)}
                   activeOpacity={0.7}
-                  className={`flex-row items-center p-4 rounded-2xl mb-4 border ${
-                    !online ? 'border-blue-600 bg-blue-50/40' : 'border-gray-200 bg-white'
-                  }`}
+                  className={`flex-row items-center p-4 rounded-2xl mb-4 border ${!online ? 'border-blue-600 bg-blue-50/40' : 'border-gray-200 bg-white'
+                    }`}
                 >
                   <View className="w-4 h-4 rounded-full border border-gray-400 items-center justify-center mr-3 bg-gray-100">
                     <View className="w-2 h-2 rounded-full bg-gray-500" />
@@ -518,9 +601,8 @@ export default function Dashboard() {
                 {/* Action: Message Customer */}
                 <TouchableOpacity
                   onPress={() => {
-                    const job = selectedJobForActions;
                     setSelectedJobForActions(null);
-                    if (job) router.push(`/chat/${job.id}` as any);
+                    comingSoon();
                   }}
                   className="flex-row items-center py-3.5 border-b border-gray-100"
                 >
@@ -528,32 +610,24 @@ export default function Dashboard() {
                   <Text className="text-sm font-bold text-gray-800 ml-3">Message Customer</Text>
                 </TouchableOpacity>
 
-                {/* Action: Call Customer */}
-                {selectedJobForActions?.phone && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      const phone = selectedJobForActions.phone;
-                      setSelectedJobForActions(null);
-                      Linking.openURL(`tel:${phone}`);
-                    }}
-                    className="flex-row items-center py-3.5 border-b border-gray-100"
-                  >
-                    <Ionicons name="call-outline" size={20} color="#16A34A" />
-                    <Text className="text-sm font-bold text-gray-800 ml-3">
-                      Call {selectedJobForActions.phone}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                {/* Action: In-app Call (no phone numbers are shared) */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedJobForActions(null);
+                    comingSoon();
+                  }}
+                  className="flex-row items-center py-3.5 border-b border-gray-100"
+                >
+                  <Ionicons name="call-outline" size={20} color="#16A34A" />
+                  <Text className="text-sm font-bold text-gray-800 ml-3">Call in App</Text>
+                </TouchableOpacity>
 
-                {/* Action: View Booking Details */}
+                {/* Action: View Details */}
                 <TouchableOpacity
                   onPress={() => {
                     const job = selectedJobForActions;
                     setSelectedJobForActions(null);
-                    alertService.alert(
-                      'Booking Details',
-                      `Client: ${job?.customerName}\nStatus: ${job?.status}\nLocation: ${job?.location}\nDescription: ${job?.description}`
-                    );
+                    if (job) openJob(job);
                   }}
                   className="flex-row items-center py-3.5 border-b border-gray-100"
                 >
@@ -561,24 +635,31 @@ export default function Dashboard() {
                   <Text className="text-sm font-bold text-gray-800 ml-3">View Full Details</Text>
                 </TouchableOpacity>
 
-                {/* Action: Decline / Cancel */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelectedJobForActions(null);
-                    alertService.alert(
-                      'Decline Booking',
-                      'Are you sure you want to decline this job request?',
-                      [
-                        { text: 'Keep Job', style: 'cancel' },
-                        { text: 'Decline', style: 'destructive', onPress: () => {} },
-                      ]
-                    );
-                  }}
-                  className="flex-row items-center py-3.5"
-                >
-                  <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
-                  <Text className="text-sm font-bold text-red-600 ml-3">Decline Request</Text>
-                </TouchableOpacity>
+                {/* Action: Decline / Withdraw (requests only; bookings are managed from Jobs) */}
+                {selectedJobForActions?.kind === 'request' && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const job = selectedJobForActions;
+                      setSelectedJobForActions(null);
+                      alertService.alert(
+                        job.offerId ? 'Withdraw Offer' : 'Decline Request',
+                        job.offerId
+                          ? 'The customer will no longer be able to book you for this job.'
+                          : 'This request will be removed from your dashboard.',
+                        [
+                          { text: 'Keep Job', style: 'cancel' },
+                          { text: job.offerId ? 'Withdraw' : 'Decline', style: 'destructive', onPress: () => declineJob(job) },
+                        ]
+                      );
+                    }}
+                    className="flex-row items-center py-3.5"
+                  >
+                    <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
+                    <Text className="text-sm font-bold text-red-600 ml-3">
+                      {selectedJobForActions.offerId ? 'Withdraw Offer' : 'Decline Request'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Close Button */}
                 <TouchableOpacity

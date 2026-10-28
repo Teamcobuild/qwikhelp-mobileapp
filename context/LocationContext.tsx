@@ -2,9 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 
+export type Coords = { latitude: number; longitude: number };
+
 type LocationContextType = {
   hasLocationPermission: boolean | null;
   locationName: string | null;
+  coords: Coords | null;
+  // Fresh high-accuracy fix (e.g. when posting a job). Throws if permission is missing.
+  getPreciseCoords: () => Promise<Coords>;
   requestPermission: () => Promise<void>;
   showModal: boolean;
 };
@@ -14,6 +19,7 @@ const LocationContext = createContext<LocationContextType | undefined>(undefined
 export const LocationProvider = ({ children }: { children: React.ReactNode }) => {
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -58,6 +64,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
       }
 
       if (location) {
+        setCoords({ latitude: location.coords.latitude, longitude: location.coords.longitude });
         const [address] = await Location.reverseGeocodeAsync({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
@@ -85,6 +92,15 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const getPreciseCoords = async (): Promise<Coords> => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') throw new Error('Location permission is needed to find providers near you.');
+    const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    const next = { latitude: fix.coords.latitude, longitude: fix.coords.longitude };
+    setCoords(next);
+    return next;
+  };
+
   const requestPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -105,6 +121,8 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
       value={{
         hasLocationPermission,
         locationName,
+        coords,
+        getPreciseCoords,
         requestPermission,
         showModal,
       }}

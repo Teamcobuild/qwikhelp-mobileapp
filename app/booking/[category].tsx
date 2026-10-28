@@ -1,34 +1,41 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useUser } from '@clerk/clerk-expo';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DatePickerModal } from '../../components/modals/DatePickerModal';
 import { SuccessBookingModal } from '../../components/modals/SuccessBookingModal';
 import { TimePickerModal } from '../../components/modals/TimePickerModal';
+import { SERVICES, serviceBySlug } from '../../constants/services';
 import { useLocation } from '../../context/LocationContext';
-
-const CATEGORY_CONFIG: Record<string, { subCategories: string[], minFare: number }> = {
-  cooking: { subCategories: ['Local Meals', 'Foreign Meals', 'Other'], minFare: 6000 },
-  cleaning: { subCategories: ['Deep Clean', 'Standard Clean', 'Other'], minFare: 5000 },
-  laundry: { subCategories: ['Wash & Fold', 'Ironing', 'Dry Cleaning'], minFare: 3000 },
-  companion: { subCategories: ['Events', 'Casual Hangout', 'Other'], minFare: 8000 },
-  'tour guide': { subCategories: ['City Tour', 'Historical', 'Adventure'], minFare: 10000 },
-  plumber: { subCategories: ['Pipe Leak', 'Installation', 'Other'], minFare: 7000 },
-  electrician: { subCategories: ['Wiring', 'Appliance Repair', 'Other'], minFare: 7000 },
-  gardeners: { subCategories: ['Trimming', 'Planting', 'Maintenance'], minFare: 5000 },
-};
+import { errorMessage, formatNaira, uploadJobPhoto } from '../../lib/broadcast';
+import { alertService } from '../../lib/AlertService';
+import { useSupabase } from '../../lib/supabase';
 
 const DURATIONS = ['2 Hours', '4 Hours', '6 Hours', '8 Hours'];
+const MAX_PHOTOS = 4;
 
 export default function BookingScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const router = useRouter();
-  const { locationName } = useLocation();
+  const { user } = useUser();
+  const supabase = useSupabase();
+  const { locationName, getPreciseCoords } = useLocation();
 
-  // Normalize category string for lookup
-  const normalizedCategory = category ? category.toLowerCase() : 'cooking';
-  const config = CATEGORY_CONFIG[normalizedCategory] || CATEGORY_CONFIG['cooking'];
+  const service = serviceBySlug(category) || SERVICES[0];
+  const [minFare, setMinFare] = useState<number>(service.minFare);
 
   const [subCategory, setSubCategory] = useState<string>('');
   const [dateObj, setDateObj] = useState<Date | undefined>(undefined);
@@ -39,26 +46,91 @@ export default function BookingScreen() {
   const [duration, setDuration] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [location, setLocation] = useState<string>('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [landmark, setLandmark] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createdJob, setCreatedJob] = useState<{ jobId: string; dispatched: number } | null>(null);
 
+  // The database owns minimum fares so they can be tuned without an app release.
   useEffect(() => {
-    if (locationName) {
-      setLocation(locationName);
+    supabase
+      .from('service_categories')
+      .select('min_fare')
+      .eq('id', service.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.min_fare) setMinFare(data.min_fare);
+      });
+  }, [supabase, service.id]);
+
+  const amountValue = parseInt(amount.replace(/\D/g, ''), 10) || 0;
+  const isFormValid =
+    subCategory && dateObj && timeObj && duration && description.trim() && amountValue && landmark.trim() && address.trim();
+
+  const handleAddPhoto = async () => {
+    if (photos.length >= MAX_PHOTOS) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      return alertService.alert('Permission Needed', 'Allow photo access so providers can see the problem.');
     }
-  }, [locationName]);
-
-  const isFormValid = subCategory && dateObj && timeObj && duration && description && amount && location;
-
-  const handleSendOffer = () => {
-    if (!isFormValid) return;
-    setShowSuccessModal(true);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS - photos.length,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setPhotos((prev) => [...prev, ...result.assets.map((a) => a.uri)].slice(0, MAX_PHOTOS));
+    }
   };
 
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const handleSendOffer = async () => {
+    if (!isFormValid || !dateObj || !timeObj || !user) return;
+    if (amountValue < minFare) {
+      return alertService.alert('Amount Too Low', `The minimum fare for ${service.name} is ${formatNaira(minFare)}.`);
+    }
+
+    const scheduledAt = new Date(dateObj);
+    scheduledAt.setHours(timeObj.getHours(), timeObj.getMinutes(), 0, 0);
+    if (scheduledAt.getTime() < Date.now() - 5 * 60 * 1000) {
+      return alertService.alert('Pick a Future Time', 'Please choose a date and time that has not passed.');
+    }
+
+    setSubmitting(true);
+    try {
+      const coords = await getPreciseCoords();
+      const photoPaths: string[] = [];
+      for (const uri of photos) {
+        photoPaths.push(await uploadJobPhoto(supabase, user.id, uri));
+      }
+
+      const { data, error } = await supabase.rpc('create_job', {
+        p_category: service.id,
+        p_sub_category: subCategory,
+        p_description: description.trim(),
+        p_photo_paths: photoPaths,
+        p_scheduled_at: scheduledAt.toISOString(),
+        p_duration_hours: parseInt(duration, 10),
+        p_budget: amountValue,
+        p_landmark: landmark.trim(),
+        p_address: address.trim(),
+        p_lat: coords.latitude,
+        p_lng: coords.longitude,
+        p_city: locationName?.split(',')[0] ?? null,
+      });
+      if (error) throw error;
+
+      setCreatedJob({ jobId: data.job_id, dispatched: data.dispatched });
+    } catch (err) {
+      alertService.alert('Could Not Send Request', errorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -75,14 +147,14 @@ export default function BookingScreen() {
             <Ionicons name="arrow-back" size={20} color="black" />
           </TouchableOpacity>
           <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-8">
-            {capitalize(category || 'Cooking')}
+            {service.name}
           </Text>
         </View>
 
-        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Sub Categories */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 mt-2">
-            {config.subCategories.map((cat) => (
+            {service.subCategories.map((cat) => (
               <TouchableOpacity
                 key={cat}
                 onPress={() => setSubCategory(cat)}
@@ -95,6 +167,36 @@ export default function BookingScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Photos */}
+          <View className="mb-6">
+            <Text className="text-gray-700 font-medium mb-1">Photos (optional)</Text>
+            <Text className="text-xs text-gray-400 mb-3">
+              Show providers the problem. Photos are screenshot-protected and only visible to matched providers.
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {photos.map((uri) => (
+                <View key={uri} className="mr-3">
+                  <Image source={{ uri }} className="w-20 h-20 rounded-xl bg-gray-200" />
+                  <TouchableOpacity
+                    onPress={() => setPhotos((prev) => prev.filter((p) => p !== uri))}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gray-900 items-center justify-center"
+                  >
+                    <Ionicons name="close" size={14} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <TouchableOpacity
+                  onPress={handleAddPhoto}
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 bg-white items-center justify-center"
+                >
+                  <Ionicons name="camera-outline" size={22} color="#9ca3af" />
+                  <Text className="text-[10px] text-gray-400 mt-1">Add photo</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </View>
 
           {/* Date & Time */}
           <View className="flex-row gap-4 mb-6">
@@ -150,6 +252,7 @@ export default function BookingScreen() {
               placeholder="Briefly describe what you want"
               multiline
               numberOfLines={4}
+              maxLength={1000}
               className="border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900"
               textAlignVertical="top"
               style={{ minHeight: 100 }}
@@ -158,34 +261,52 @@ export default function BookingScreen() {
 
           {/* Amount */}
           <View className="mb-6">
-            <Text className="text-gray-700 font-medium mb-2">Amount</Text>
+            <Text className="text-gray-700 font-medium mb-2">Workmanship Fee</Text>
             <View className="relative justify-center">
               <Text className="absolute left-4 top-3 text-gray-900 text-lg font-bold">₦</Text>
               <TextInput
                 value={amount}
                 onChangeText={setAmount}
-                placeholder="0.00"
+                placeholder="0"
                 keyboardType="numeric"
                 className="border border-gray-200 rounded-xl pl-9 pr-4 py-3 bg-gray-50 text-gray-900 text-lg font-bold"
               />
             </View>
             <Text className="text-xs text-gray-400 mt-2">
-              You can change the recommended fare. Min: {config.minFare}
+              Labour only. Providers can accept or counter once. Min: {formatNaira(minFare)}
             </Text>
           </View>
 
-          {/* Location */}
-          <View className="mb-24">
-            <Text className="text-gray-700 font-medium mb-2">Service Location</Text>
+          {/* Landmark (public) */}
+          <View className="mb-6">
+            <Text className="text-gray-700 font-medium mb-2">Nearest Landmark</Text>
             <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Your address"
+              value={landmark}
+              onChangeText={setLandmark}
+              placeholder="e.g. Opposite Ariaria Market gate"
+              maxLength={120}
               className="border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900"
             />
             <Text className="text-xs text-gray-400 mt-2">
-              You can change your location
+              Providers only see this landmark and their distance from you.
             </Text>
+          </View>
+
+          {/* Exact address (private) */}
+          <View className="mb-24">
+            <Text className="text-gray-700 font-medium mb-2">Service Address</Text>
+            <TextInput
+              value={address}
+              onChangeText={setAddress}
+              placeholder="House number and street"
+              className="border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900"
+            />
+            <View className="flex-row items-center mt-2">
+              <Ionicons name="lock-closed" size={12} color="#9ca3af" />
+              <Text className="text-xs text-gray-400 ml-1">
+                Kept private. Only shared with the provider you book.
+              </Text>
+            </View>
           </View>
 
         </ScrollView>
@@ -194,10 +315,14 @@ export default function BookingScreen() {
         <View className="absolute bottom-0 left-0 right-0 p-6">
           <TouchableOpacity
             onPress={handleSendOffer}
-            disabled={!isFormValid}
+            disabled={!isFormValid || submitting}
             className={`py-4 rounded-xl items-center ${isFormValid ? 'bg-blue-600' : 'bg-gray-300'}`}
           >
-            <Text className="text-white font-bold text-lg">Send Offer</Text>
+            {submitting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-lg">Send Offer</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -223,33 +348,11 @@ export default function BookingScreen() {
       />
 
       <SuccessBookingModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        jobData={{
-          category: Array.isArray(category) ? category[0] : category || 'Service',
-          duration,
-          date: dateStr,
-          time: timeStr,
-          amount
-        }}
+        visible={!!createdJob}
+        jobId={createdJob?.jobId}
+        dispatched={createdJob?.dispatched ?? 0}
+        onClose={() => setCreatedJob(null)}
       />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    alignItems: 'center',
-  }
-});

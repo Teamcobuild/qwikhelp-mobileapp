@@ -1,43 +1,30 @@
+import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { serviceName } from "../../constants/services";
+import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
+import { alertService } from "../../lib/AlertService";
+import { BookingItem, formatJobDate, formatJobTime, JobSummary } from "../../lib/broadcast";
+import { useSupabase } from "../../lib/supabase";
 
 const CATEGORIES = ["All", "Upcoming", "Completed", "Pending", "Canceled"];
 
-// const MOCK_DATA: any[] = [];
+interface HistoryItem {
+    id: string;
+    jobId: string;
+    providerName: string;
+    serviceName: string;
+    time: string;
+    status: "Pending" | "Confirmed" | "Completed" | "Canceled";
+    sortAt: string;
+}
 
-const MOCK_DATA = [
-    {
-        id: "1",
-        providerName: "Ahmed Ali",
-        serviceName: "Cooking Service",
-        time: "Waiting....",
-        status: "Pending",
-    },
-    {
-        id: "2",
-        providerName: "Chidi Jude",
-        serviceName: "Laundry",
-        time: "Today 4:00pm",
-        status: "Confirmed",
-    },
-    {
-        id: "3",
-        providerName: "Eslam Magdy",
-        serviceName: "House Cleaning",
-        time: "Today 1:00pm",
-        status: "Canceled",
-    },
-    {
-        id: "4",
-        providerName: "Chidi Jude",
-        serviceName: "Laundry",
-        time: "Yesterday 4:00pm",
-        status: "Completed",
-    },
-];
-
+// In-app calls only; phone numbers are never shared.
+const comingSoon = () =>
+    alertService.alert("Coming Soon", "In-app chat and calls with providers are coming in the next update.");
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -80,9 +67,65 @@ const getStatusColor = (status: string) => {
 };
 
 export default function HistoryScreen() {
+    const router = useRouter();
+    const { user } = useUser();
+    const supabase = useSupabase();
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [items, setItems] = useState<HistoryItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const filteredData = MOCK_DATA.filter((item) => {
+    const load = useCallback(async () => {
+        if (!user) return;
+        const [jobsRes, bookingsRes] = await Promise.all([
+            supabase
+                .from("jobs")
+                .select("id, category, status, scheduled_at, created_at")
+                .eq("customer_id", user.id)
+                .neq("status", "booked")
+                .order("created_at", { ascending: false })
+                .limit(50),
+            supabase.rpc("get_my_bookings"),
+        ]);
+
+        const when = (iso: string) => `${formatJobDate(iso)} ${formatJobTime(iso)}`;
+        const jobs = ((jobsRes.data ?? []) as Pick<JobSummary, "id" | "category" | "status" | "scheduled_at" | "created_at">[])
+            .map<HistoryItem>((j) => ({
+                id: `job-${j.id}`,
+                jobId: j.id,
+                providerName: j.status === "open" ? "Finding providers…" : "No provider booked",
+                serviceName: serviceName(j.category),
+                time: j.status === "open" ? "Waiting…" : when(j.scheduled_at),
+                status: j.status === "open" ? "Pending" : "Canceled",
+                sortAt: j.created_at,
+            }));
+        const bookings = ((bookingsRes.data ?? []) as BookingItem[])
+            .filter((b) => b.role === "customer")
+            .map<HistoryItem>((b) => ({
+                id: `bk-${b.id}`,
+                jobId: b.job_id,
+                providerName: b.provider.name,
+                serviceName: serviceName(b.category),
+                time: when(b.scheduled_at),
+                status: b.status === "completed" ? "Completed" : b.status === "cancelled" ? "Canceled" : "Confirmed",
+                sortAt: b.scheduled_at,
+            }));
+
+        setItems([...jobs, ...bookings].sort((a, b) => b.sortAt.localeCompare(a.sortAt)));
+        setLoading(false);
+        setRefreshing(false);
+    }, [supabase, user]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    useRealtimeRefresh(user ? `customer-history:${user.id}` : null, [
+        { table: "jobs", filter: `customer_id=eq.${user?.id}` },
+        { table: "bookings", filter: `customer_id=eq.${user?.id}` },
+    ], load);
+
+    const filteredData = items.filter((item) => {
         if (selectedCategory === "All") return true;
         if (selectedCategory === "Upcoming") return item.status === "Confirmed";
         if (selectedCategory === "Completed") return item.status === "Completed";
@@ -128,7 +171,9 @@ export default function HistoryScreen() {
                 </ScrollView>
             </View>
 
-            {isEmpty ? (
+            {loading ? (
+                <ActivityIndicator color="#2563EB" className="mt-10" />
+            ) : isEmpty ? (
                 <View className="flex-1 items-center justify-center px-6 pb-20">
                     <Ionicons
                         name="search-outline"
@@ -148,12 +193,15 @@ export default function HistoryScreen() {
                 <ScrollView
                     className="flex-1 px-6"
                     showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
                 >
                     {filteredData.map((item) => {
                         const colors = getStatusColor(item.status);
                         return (
-                            <View
+                            <TouchableOpacity
                                 key={item.id}
+                                activeOpacity={0.85}
+                                onPress={() => router.push({ pathname: "/booking/offers/[jobId]", params: { jobId: item.jobId } })}
                                 className="bg-white rounded-[24px] p-5 mb-4 border border-gray-100"
                             >
                                 <View className="flex-row justify-between items-center mb-4">
@@ -177,6 +225,7 @@ export default function HistoryScreen() {
                                         </Text>
                                     </View>
                                     <TouchableOpacity
+                                        onPress={comingSoon}
                                         className={`w-12 h-12 rounded-full items-center justify-center ${colors.iconBg}`}
                                     >
                                         <Ionicons
@@ -186,7 +235,7 @@ export default function HistoryScreen() {
                                         />
                                     </TouchableOpacity>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         );
                     })}
                     <View className="h-10" />
