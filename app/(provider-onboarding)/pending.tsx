@@ -3,10 +3,10 @@ import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
 import { docTitle, tradeName } from '@/constants/kyc';
 import { useKyc } from '@/context/KycContext';
-import { OnboardingStep, ProviderStatus } from '@/types/provider';
+import { OnboardingStep, ProviderPublicMetadata, ProviderStatus } from '@/types/provider';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   AppState,
@@ -94,10 +94,10 @@ const STATUS_COPY: Record<ProviderStatus, StatusCopy> = {
     icon: 'close-circle-outline',
   },
   approved: {
-    title: "You're Approved!",
-    body: 'Setting up your dashboard…',
-    pill: 'Approved',
-    icon: 'checkmark-circle-outline',
+    title: "You're Verified",
+    body: 'Your identity and documents have been verified. You can go online and receive job requests.',
+    pill: 'Verified',
+    icon: 'shield-checkmark-outline',
   },
 };
 
@@ -109,8 +109,11 @@ export default function PendingScreen() {
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
-  const { kyc: kycData, status, reviewNote, reload } = useKyc();
+  const { kyc: kycData, status, reviewNote, reload, syncClerkStatus } = useKyc();
+  const segments = useSegments();
   const copy = STATUS_COPY[status];
+  const isApproved = status === 'approved';
+  const canEdit = status === 'draft' || status === 'submitted' || status === 'needs_changes';
 
   // Re-check when the provider returns to the app (e.g. after an approval push).
   useEffect(() => {
@@ -123,8 +126,8 @@ export default function PendingScreen() {
   // Prevent routing back via hardware back button on Android
   useEffect(() => {
     const onBackPress = () => {
-      // Disallow back navigation while under review
-      return true;
+      // Disallow back navigation while under review; verified providers viewing their status can leave.
+      return !isApproved;
     };
 
     const subscription = BackHandler.addEventListener(
@@ -132,7 +135,7 @@ export default function PendingScreen() {
       onBackPress
     );
     return () => subscription.remove();
-  }, []);
+  }, [isApproved]);
 
   const handleCheckStatus = async () => {
     setLoading(true);
@@ -155,6 +158,28 @@ export default function PendingScreen() {
         'Error',
         err.message || 'Could not verify status. Please check your internet connection.'
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoToDashboard = async () => {
+    const clerkStatus = (user?.publicMetadata as ProviderPublicMetadata | undefined)?.providerStatus;
+    if (clerkStatus === 'approved') {
+      if (segments[0] === 'verification-status' && router.canGoBack()) router.back();
+      else router.replace('/(provider-tabs)/dashboard');
+      return;
+    }
+
+    // Clerk hasn't caught up with the approval yet; sync it. The root gate redirects once it lands.
+    setLoading(true);
+    try {
+      const synced = await syncClerkStatus();
+      if (synced !== 'approved') {
+        alertService.alert('Not Approved Yet', 'Your account is not approved yet. Please check again shortly.');
+      }
+    } catch (err: any) {
+      alertService.alert('Could not open dashboard', err.message || 'Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -205,13 +230,15 @@ export default function PendingScreen() {
             <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               Submission Summary
             </Text>
-            <TouchableOpacity
-              onPress={() => setEditModalVisible(true)}
-              className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg"
-            >
-              <Ionicons name="create-outline" size={13} color="#2563EB" />
-              <Text className="text-xs font-bold text-blue-600">Edit Details</Text>
-            </TouchableOpacity>
+            {canEdit && (
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(true)}
+                className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg"
+              >
+                <Ionicons name="create-outline" size={13} color="#2563EB" />
+                <Text className="text-xs font-bold text-blue-600">Edit Details</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View className="gap-3">
@@ -258,8 +285,8 @@ export default function PendingScreen() {
 
             <View className="flex-row justify-between items-center pt-1">
               <Text className="text-xs text-gray-500">Status</Text>
-              <View className="bg-amber-100 px-2.5 py-0.5 rounded-full">
-                <Text className="text-[11px] font-semibold text-amber-800">
+              <View className={`px-2.5 py-0.5 rounded-full ${isApproved ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                <Text className={`text-[11px] font-semibold ${isApproved ? 'text-emerald-800' : 'text-amber-800'}`}>
                   {copy.pill}
                 </Text>
               </View>
@@ -268,48 +295,63 @@ export default function PendingScreen() {
         </View>
 
         {/* Info Box */}
-        <View className="w-full bg-blue-50/70 rounded-2xl p-4 flex-row items-start">
-          <Ionicons name="time-outline" size={20} color="#2563EB" className="mt-0.5" />
-          <View className="ml-3 flex-1">
-            <Text className="text-xs font-bold text-blue-900 mb-0.5">
-              Typical turnaround: 24 - 48 hours
-            </Text>
-            <Text className="text-xs text-blue-700 leading-4">
-              Once verified, your dashboard and client job feed will be automatically activated. You can make corrections anytime while under review.
-            </Text>
+        {!isApproved && (
+          <View className="w-full bg-blue-50/70 rounded-2xl p-4 flex-row items-start">
+            <Ionicons name="time-outline" size={20} color="#2563EB" className="mt-0.5" />
+            <View className="ml-3 flex-1">
+              <Text className="text-xs font-bold text-blue-900 mb-0.5">
+                Typical turnaround: 24 - 48 hours
+              </Text>
+              <Text className="text-xs text-blue-700 leading-4">
+                Once verified, your dashboard and client job feed will be automatically activated. You can make corrections anytime while under review.
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
       {/* Action Buttons */}
-      <View className="w-full mt-6 gap-3">
-        <Button
-          title="Check Verification Status"
-          onPress={handleCheckStatus}
-          loading={loading}
-          className="bg-blue-600 shadow-sm"
-        />
+      {isApproved ? (
+        <View className="w-full mt-6">
+          <Button
+            title="Go to Dashboard"
+            onPress={handleGoToDashboard}
+            loading={loading}
+            className="bg-blue-600 shadow-sm"
+          />
+        </View>
+      ) : (
+        <View className="w-full mt-6 gap-3">
+          <Button
+            title="Check Verification Status"
+            onPress={handleCheckStatus}
+            loading={loading}
+            className="bg-blue-600 shadow-sm"
+          />
 
-        <TouchableOpacity
-          onPress={() => setEditModalVisible(true)}
-          activeOpacity={0.8}
-          className="h-14 bg-white border-2 border-blue-600 rounded-xl flex-row items-center justify-center shadow-2xs"
-        >
-          <Ionicons name="create-outline" size={18} color="#2563EB" className="mr-2" />
-          <Text className="text-blue-600 font-bold text-base">
-            Make Corrections
-          </Text>
-        </TouchableOpacity>
+          {canEdit && (
+            <TouchableOpacity
+              onPress={() => setEditModalVisible(true)}
+              activeOpacity={0.8}
+              className="h-14 bg-white border-2 border-blue-600 rounded-xl flex-row items-center justify-center shadow-2xs"
+            >
+              <Ionicons name="create-outline" size={18} color="#2563EB" className="mr-2" />
+              <Text className="text-blue-600 font-bold text-base">
+                Make Corrections
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity
-          onPress={handleSignOut}
-          className="py-2.5 items-center justify-center"
-        >
-          <Text className="text-sm font-semibold text-gray-500">
-            Sign Out / Switch Account
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={handleSignOut}
+            className="py-2.5 items-center justify-center"
+          >
+            <Text className="text-sm font-semibold text-gray-500">
+              Sign Out / Switch Account
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Select Section to Edit Modal */}
       <Modal

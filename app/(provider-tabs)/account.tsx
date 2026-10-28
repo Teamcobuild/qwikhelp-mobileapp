@@ -107,7 +107,7 @@ export default function ProviderAccount() {
             icon="document-text-outline"
             title="KYC & Verification Status"
             subtitle="National ID, Guarantor, Liveness"
-            onPress={() => router.push('/(provider-onboarding)/pending')}
+            onPress={() => router.push('/verification-status')}
           />
           <MenuItem
             icon="wallet-outline"

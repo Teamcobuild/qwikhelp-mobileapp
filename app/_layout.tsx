@@ -39,6 +39,7 @@ function InitialLayout() {
     const inChat = segments[0] === 'chat';
     const inProviderProfile = segments[0] === 'provider-profile';
     const inDispute = segments[0] === 'dispute';
+    const inVerificationStatus = segments[0] === 'verification-status';
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -75,7 +76,7 @@ function InitialLayout() {
       }
 
       // Allow providers to access provider tabs and shared screens
-      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute;
+      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inVerificationStatus;
       if (providerVerified && !inProviderAllowed) {
         router.replace('/(provider-tabs)/dashboard');
       }
@@ -112,6 +113,7 @@ function InitialLayout() {
       <Stack.Screen name="chat/[bookingId]" />
       <Stack.Screen name="dispute/[bookingId]" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="verification-status" />
       <Stack.Screen name="booking/[category]" />
     </Stack>
   );

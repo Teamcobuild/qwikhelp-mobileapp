@@ -1,9 +1,9 @@
 import { KycProvider, useKyc } from '@/context/KycContext';
-import { ONBOARDING_STEPS, OnboardingStep } from '@/types/provider';
+import { ONBOARDING_STEPS, OnboardingStep, ProviderPublicMetadata } from '@/types/provider';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,24 +19,19 @@ function OnboardingShell() {
   const segments = useSegments();
   const router = useRouter();
   const { user } = useUser();
-  const { ready, error, reload, status } = useKyc();
+  const { ready, error, reload, status, syncClerkStatus } = useKyc();
+  const clerkStatus = (user?.publicMetadata as ProviderPublicMetadata | undefined)?.providerStatus;
+  const syncedFor = useRef<string | null>(null);
 
-  // Once the backend approves, wait for the Clerk publicMetadata mirror to land, then the
-  // root routing gate moves the provider to their dashboard.
+  // The database is the source of truth. If Clerk's mirror is behind (webhook still in flight or
+  // missed), ask the backend to re-sync it; once Clerk says 'approved', the root routing gate
+  // moves the provider to their dashboard.
   useEffect(() => {
-    if (status !== 'approved' || !user) return;
-    let cancelled = false;
-    (async () => {
-      for (let attempt = 0; attempt < 10 && !cancelled; attempt++) {
-        await user.reload();
-        if ((user.publicMetadata as any)?.providerStatus === 'approved') return;
-        await new Promise((r) => setTimeout(r, 1500));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [status, user]);
+    if (!ready || !user || status === 'draft' || status === clerkStatus) return;
+    if (syncedFor.current === status) return; // one attempt per status change
+    syncedFor.current = status;
+    syncClerkStatus().catch((err) => console.warn('Provider status sync failed:', err.message));
+  }, [ready, status, clerkStatus, user, syncClerkStatus]);
 
   // Find current screen in provider-onboarding
   const currentScreen = (segments[segments.length - 1] || 'personal-details') as OnboardingStep;

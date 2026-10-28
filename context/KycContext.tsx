@@ -26,6 +26,8 @@ interface KycContextValue {
   publicUrl: (bucket: Exclude<Bucket, 'kyc'>, path: string) => string;
   saveStep: (input: SaveStepInput) => Promise<void>;
   submit: () => Promise<ProviderStatus>;
+  // Asks the backend to copy the DB status into Clerk publicMetadata, then reloads the Clerk user.
+  syncClerkStatus: () => Promise<ProviderStatus | undefined>;
 }
 
 const KycContext = createContext<KycContextValue | undefined>(undefined);
@@ -247,8 +249,22 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
     return data as ProviderStatus;
   }, [supabase]);
 
+  const syncClerkStatus = useCallback(async () => {
+    const { data, error: fnErr } = await supabase.functions.invoke('provider-status-sync', { body: {} });
+    if (fnErr) {
+      let message = fnErr.message;
+      try {
+        const body = await (fnErr as any).context?.json?.();
+        if (body?.error) message = body.error;
+      } catch {}
+      throw new Error(message);
+    }
+    await user?.reload();
+    return data?.status as ProviderStatus | undefined;
+  }, [supabase, user]);
+
   return (
-    <KycContext.Provider value={{ ready, loading, error, kyc, status, reviewNote, reload, uploadImage, publicUrl, saveStep, submit }}>
+    <KycContext.Provider value={{ ready, loading, error, kyc, status, reviewNote, reload, uploadImage, publicUrl, saveStep, submit, syncClerkStatus }}>
       {children}
     </KycContext.Provider>
   );
