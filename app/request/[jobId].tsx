@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -30,6 +29,7 @@ import {
   signJobPhotos,
 } from '../../lib/broadcast';
 import { useSupabase } from '../../lib/supabase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const roundTo100 = (n: number) => Math.round(n / 100) * 100;
 
@@ -173,7 +173,7 @@ export default function JobRequestScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#FAFAFA]">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <View className="flex-1">
         {/* Header */}
         <View className="flex-row items-center px-4 py-3">
           <TouchableOpacity
@@ -187,7 +187,7 @@ export default function JobRequestScreen() {
           <View className="w-10" />
         </View>
 
-        <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView bottomOffset={24} className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Summary */}
           <View className="bg-white rounded-[22px] border border-gray-200 p-4 mb-4">
             <View className="flex-row items-center justify-between">
@@ -311,7 +311,7 @@ export default function JobRequestScreen() {
           )}
 
           <View className="h-40" />
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Actions */}
         <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pt-3 pb-8">
@@ -353,7 +353,7 @@ export default function JobRequestScreen() {
             <ActionButton label="Withdraw Offer" variant="outline" onPress={withdraw} loading={busy === 'withdraw'} disabled={!!busy} />
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

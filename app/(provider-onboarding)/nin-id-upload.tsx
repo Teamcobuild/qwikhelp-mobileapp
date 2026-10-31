@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 export default function NinIdUpload() {
   const router = useRouter();
@@ -149,7 +150,7 @@ export default function NinIdUpload() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView bottomOffset={24}
       className="flex-1 bg-[#F9FAFB] px-5 pt-4"
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
@@ -517,6 +518,6 @@ export default function NinIdUpload() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }

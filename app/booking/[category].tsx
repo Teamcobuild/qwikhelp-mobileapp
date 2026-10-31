@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   Text,
@@ -23,6 +22,7 @@ import { useLocation } from '../../context/LocationContext';
 import { errorMessage, formatNaira, uploadJobPhoto } from '../../lib/broadcast';
 import { alertService } from '../../lib/AlertService';
 import { useSupabase } from '../../lib/supabase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const DURATIONS = ['2 Hours', '4 Hours', '6 Hours', '8 Hours'];
 const MAX_PHOTOS = 4;
@@ -134,8 +134,7 @@ export default function BookingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <View
         className="flex-1"
       >
         {/* Header */}
@@ -154,7 +153,7 @@ export default function BookingScreen() {
           <View className="w-10" />
         </View>
 
-        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView bottomOffset={24} className="flex-1 px-6" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Sub Categories */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 mt-2">
             {service.subCategories.map((cat) => (
@@ -312,7 +311,7 @@ export default function BookingScreen() {
             </View>
           </View>
 
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Footer */}
         <View className="absolute bottom-0 left-0 right-0 p-6">
@@ -328,7 +327,7 @@ export default function BookingScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <DatePickerModal
         visible={showDatePicker}

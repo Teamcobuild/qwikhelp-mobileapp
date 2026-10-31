@@ -2,17 +2,17 @@ import { clearPushToken } from '@/lib/push';
 import { useSupabase } from '@/lib/supabase';
 import { useAvatar } from '@/context/AvatarContext';
 import { alertService } from '@/lib/AlertService';
+import { BookingItem } from '@/lib/broadcast';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProviderAccount() {
   const { user } = useUser();
   const { signOut } = useAuth();
-
   const supabase = useSupabase();
   const router = useRouter();
   const { avatarUrl } = useAvatar();
@@ -25,7 +25,6 @@ export default function ProviderAccount() {
         style: 'destructive',
         onPress: async () => {
           await clearPushToken(supabase);
-
           await signOut();
           router.replace('/(auth)/sign-in');
         },
@@ -33,7 +32,21 @@ export default function ProviderAccount() {
     ]);
   };
 
-  const firstName = user?.firstName || 'Emeka';
+  const [stats, setStats] = useState({ rating: 0, reviews: 0, jobsDone: 0 });
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase.from('provider_profiles').select('rating, review_count').eq('user_id', user.id).maybeSingle(),
+      supabase.rpc('get_my_bookings'),
+    ]).then(([{ data: p }, { data: bookings }]) => {
+      setStats({
+        rating: Number(p?.rating ?? 0),
+        reviews: p?.review_count ?? 0,
+        jobsDone: ((bookings ?? []) as BookingItem[]).filter((b) => b.role === 'provider' && b.status === 'completed').length,
+      });
+    });
+  }, [supabase, user]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#FAFAFA]" edges={['top']}>
@@ -56,12 +69,12 @@ export default function ProviderAccount() {
             <View className="ml-4 flex-1">
               <View className="flex-row items-center">
                 <Text className="text-lg font-bold text-gray-900 mr-2" numberOfLines={1}>
-                  {user?.fullName || `${firstName} Okonkwo`}
+                  {user?.fullName || 'Your profile'}
                 </Text>
                 <Ionicons name="shield-checkmark" size={16} color="#16A34A" />
               </View>
               <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
-                {user?.primaryEmailAddress?.emailAddress || 'provider@qwikhelp.com'}
+                {user?.primaryEmailAddress?.emailAddress}
               </Text>
               <View className="flex-row items-center bg-emerald-50 px-2 py-0.5 rounded-md self-start mt-1.5">
                 <Text className="text-[10px] font-bold text-emerald-700">Verified Provider</Text>
@@ -74,7 +87,9 @@ export default function ProviderAccount() {
             <View className="items-center flex-1">
               <View className="flex-row items-center">
                 <Ionicons name="star" size={14} color="#F59E0B" />
-                <Text className="text-sm font-bold text-gray-900 ml-1">4.9</Text>
+                <Text className="text-sm font-bold text-gray-900 ml-1">
+                  {stats.reviews ? stats.rating.toFixed(1) : 'New'}
+                </Text>
               </View>
               <Text className="text-[11px] text-gray-400 mt-0.5">Rating</Text>
             </View>
@@ -82,15 +97,15 @@ export default function ProviderAccount() {
             <View className="w-px h-8 bg-gray-100 self-center" />
 
             <View className="items-center flex-1">
-              <Text className="text-sm font-bold text-gray-900">48</Text>
+              <Text className="text-sm font-bold text-gray-900">{stats.jobsDone}</Text>
               <Text className="text-[11px] text-gray-400 mt-0.5">Jobs Done</Text>
             </View>
 
             <View className="w-px h-8 bg-gray-100 self-center" />
 
             <View className="items-center flex-1">
-              <Text className="text-sm font-bold text-emerald-600">99%</Text>
-              <Text className="text-[11px] text-gray-400 mt-0.5">Completion</Text>
+              <Text className="text-sm font-bold text-gray-900">{stats.reviews}</Text>
+              <Text className="text-[11px] text-gray-400 mt-0.5">Reviews</Text>
             </View>
           </View>
         </View>
@@ -101,9 +116,9 @@ export default function ProviderAccount() {
         >
           <MenuItem
             icon="person-outline"
-            title="Edit Profile & Services"
-            subtitle="Trade category, experience, bio"
-            onPress={() => alertService.alert('Edit Profile', 'Profile editing is coming up next.')}
+            title="Edit Profile"
+            subtitle="Name and profile photo"
+            onPress={() => router.push('/edit-profile')}
           />
           <MenuItem
             icon="document-text-outline"
@@ -113,8 +128,8 @@ export default function ProviderAccount() {
           />
           <MenuItem
             icon="wallet-outline"
-            title="Bank & Payout Details"
-            subtitle="Manage your settlement accounts"
+            title="Wallet & Earnings"
+            subtitle="Completed and upcoming jobs"
             onPress={() => router.push('/(provider-tabs)/earnings')}
           />
           <MenuItem
@@ -132,8 +147,8 @@ export default function ProviderAccount() {
           <MenuItem
             icon="help-circle-outline"
             title="Help & Provider Support"
-            subtitle="FAQs and contact QwikHelp"
-            onPress={() => alertService.alert('Support', 'Contact support at support@qwikhelp.ng')}
+            subtitle="Chat with the QwikHelp team"
+            onPress={() => router.push('/support')}
           />
           <MenuItem
             icon="shield-outline"

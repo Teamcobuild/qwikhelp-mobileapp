@@ -3,8 +3,9 @@ import { alertService } from "@/lib/AlertService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export default function LocationScreen() {
     const router = useRouter();
@@ -53,8 +54,8 @@ export default function LocationScreen() {
                 <View className="w-10" />
             </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
-                <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View className="flex-1">
+                <KeyboardAwareScrollView bottomOffset={24} className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                     {/* Current location */}
                     <Text className="text-xs font-bold text-gray-500 uppercase mb-2">Current location</Text>
                     <View className="bg-white rounded-[20px] p-5 mb-6">
@@ -136,8 +137,8 @@ export default function LocationScreen() {
                         {saving && <ActivityIndicator color="white" className="mr-2" />}
                         <Text className="text-white font-bold text-base">Save address</Text>
                     </TouchableOpacity>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                </KeyboardAwareScrollView>
+            </View>
         </SafeAreaView>
     );
 }

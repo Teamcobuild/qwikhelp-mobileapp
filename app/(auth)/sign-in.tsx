@@ -7,6 +7,7 @@ import { alertService } from "../../lib/AlertService";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Typography } from "../../components/ui/Typography";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export default function SignInScreen() {
     const { signIn, setActive, isLoaded } = useSignIn();
@@ -47,6 +48,12 @@ export default function SignInScreen() {
     };
 
     return (
+        <KeyboardAwareScrollView
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1 }}
+            className="flex-1 bg-white"
+        >
         <View className="flex-1 bg-white px-4 pt-12 justify-center">
             <View className="items-center mb-10">
                 <Image
@@ -111,5 +118,6 @@ export default function SignInScreen() {
                 </Typography>
             </View>
         </View>
+        </KeyboardAwareScrollView>
     );
 }

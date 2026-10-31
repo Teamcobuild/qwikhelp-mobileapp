@@ -5,6 +5,7 @@ import { TextInput, View } from "react-native";
 import { alertService } from "../../lib/AlertService";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Typography } from "../../components/ui/Typography"; // Verify this path matches your setup
 
 export default function ForgotPassword() {
@@ -76,6 +77,12 @@ export default function ForgotPassword() {
     };
 
     return (
+        <KeyboardAwareScrollView
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1 }}
+            className="flex-1 bg-white"
+        >
         <View className="flex-1 bg-white px-4 pt-12">
             {step === "email" && (
                 <View className="flex flex-col">
@@ -116,5 +123,6 @@ export default function ForgotPassword() {
                 </>
             )}
         </View>
+        </KeyboardAwareScrollView>
     );
 }

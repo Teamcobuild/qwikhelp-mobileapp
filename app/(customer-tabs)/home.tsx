@@ -5,6 +5,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ServiceCard } from "../../components/ui/ServiceCard";
 import { Typography } from "../../components/ui/Typography";
+import { ASSISTANT_ENABLED } from "../../constants/features";
 import { useLocation } from "../../context/LocationContext";
 import { useNotifications } from "../../context/NotificationContext";
 
@@ -125,13 +126,15 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* floating assistant button */}
-            <TouchableOpacity
-                onPress={() => router.push("/assistant")}
-                className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-300"
-                activeOpacity={0.8}
-            >
-                <Ionicons name="sparkles" size={24} color="white" />
-            </TouchableOpacity>
+            {ASSISTANT_ENABLED && (
+                <TouchableOpacity
+                    onPress={() => router.push("/assistant")}
+                    className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-300"
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="sparkles" size={24} color="white" />
+                </TouchableOpacity>
+            )}
 
         </SafeAreaView>
     );

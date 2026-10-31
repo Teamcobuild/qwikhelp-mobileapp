@@ -4,14 +4,19 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// The chat screen the user is looking at; its own message pushes are not shown as banners.
+let activeConversationId: string | null = null;
+export const setActiveConversation = (id: string | null) => {
+  activeConversationId = id;
+};
+
 // Show notifications as banners while the app is open too.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as { conversationId?: string };
+    const show = !(data?.conversationId && data.conversationId === activeConversationId);
+    return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: true };
+  },
 });
 
 const projectId: string | undefined =

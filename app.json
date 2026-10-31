@@ -1,22 +1,25 @@
 {
   "expo": {
-    "name": "qwikhelp",
+    "name": "QwikHelp",
     "slug": "qwikhelp",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "qwikhelp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "web": {
-        "bundler": "metro"
+      "bundleIdentifier": "com.qwikhelp.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "adaptiveIcon": {},
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.qwikhelp.app"
     },
     "web": {
       "output": "static"
@@ -45,11 +48,25 @@
         {
           "color": "#2563EB"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "QwikHelp needs your photos so you can add job pictures, your profile photo and chat photos.",
+          "cameraPermission": "QwikHelp uses the camera for your verification selfie, ID photos and job pictures."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "QwikHelp uses your location to find service providers near you and to show providers how far a job is."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "icon": "./assets/images/icon.png"
   }
 }

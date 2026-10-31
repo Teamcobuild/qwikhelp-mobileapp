@@ -1,5 +1,6 @@
 import { clearPushToken } from "@/lib/push";
 import { useSupabase } from "@/lib/supabase";
+import { ASSISTANT_ENABLED } from "@/constants/features";
 import { useAvatar } from "@/context/AvatarContext";
 import { alertService } from "@/lib/AlertService";
 import { useAuth, useUser } from "@clerk/clerk-expo";
@@ -73,7 +74,9 @@ export default function SettingsScreen() {
 
                 <Section title="Help">
                     <Row icon="chatbubble-ellipses-outline" label="Chat with support" onPress={() => router.push("/support")} />
-                    <Row icon="sparkles-outline" label="Ask QwikHelp AI" onPress={() => router.push("/assistant")} />
+                    {ASSISTANT_ENABLED && (
+                        <Row icon="sparkles-outline" label="Ask QwikHelp AI" onPress={() => router.push("/assistant")} />
+                    )}
                 </Section>
 
                 <Section title="About">

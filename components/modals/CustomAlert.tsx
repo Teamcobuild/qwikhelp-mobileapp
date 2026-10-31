@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
-import { AlertOptions, alertService } from '../../lib/AlertService';
+import { AlertButton, AlertOptions, alertService } from '../../lib/AlertService';
 
 export const CustomAlert = () => {
   const [visible, setVisible] = useState(false);
@@ -20,7 +20,7 @@ export const CustomAlert = () => {
     if (onPress) onPress();
   };
 
-  const defaultButtons = [{ text: 'OK', onPress: () => setVisible(false) }];
+  const defaultButtons: AlertButton[] = [{ text: 'OK', onPress: () => setVisible(false) }];
   const buttons = options.buttons?.length ? options.buttons : defaultButtons;
 
   return (

@@ -13,6 +13,7 @@ import {
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
 import { useKyc } from '@/context/KycContext';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const RELATIONSHIPS = [
   'Landlord / Property Owner',
@@ -115,7 +116,7 @@ export default function Guarantor() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView bottomOffset={24}
       className="flex-1 bg-[#F9FAFB] px-5 pt-4"
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
@@ -351,6 +352,6 @@ export default function Guarantor() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }

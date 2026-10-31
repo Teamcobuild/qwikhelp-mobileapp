@@ -6,6 +6,8 @@ import { tradeName } from '../../constants/kyc';
 import { useCountdown } from '../../hooks/useCountdown';
 import { alertService } from '../../lib/AlertService';
 import { formatNaira, OfferStatus, OfferSummary, ProviderCard } from '../../lib/broadcast';
+import { callsComingSoon, openChat } from '../../lib/chat';
+import { useSupabase } from '../../lib/supabase';
 
 export type Offer = OfferSummary & { provider: ProviderCard };
 
@@ -26,12 +28,11 @@ const CLOSED_LABEL: Partial<Record<OfferStatus, string>> = {
   job_closed: 'Job closed',
 };
 
-// In-app chat and calls only; phone numbers are never shared.
-const comingSoon = () =>
-  alertService.alert('Coming Soon', 'In-app chat and calls with providers are coming in the next update.');
-
 export const OfferCard: React.FC<OfferCardProps> = ({ offer, budget, onBook, booking, disabled }) => {
   const router = useRouter();
+  const supabase = useSupabase();
+  // Chat opens once the price is agreed.
+  const chatOpen = offer.status === 'agreed' || offer.status === 'selected';
   const { label: timeLeft } = useCountdown(offer.expires_at);
   const p = offer.provider;
   const firstName = p.name.split(' ')[0];
@@ -88,16 +89,20 @@ export const OfferCard: React.FC<OfferCardProps> = ({ offer, budget, onBook, boo
           </View>
           <View className="flex-row gap-3">
             <TouchableOpacity
-              onPress={comingSoon}
+              onPress={callsComingSoon}
               className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center"
             >
               <Ionicons name="call" size={14} color="#2563eb" />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={comingSoon}
-              className="w-8 h-8 rounded-full border border-gray-100 items-center justify-center bg-blue-50"
+              onPress={() =>
+                chatOpen
+                  ? openChat(supabase, router, offer.id)
+                  : alertService.alert('Chat not available yet', `You can chat with ${firstName} once you agree on a price.`)
+              }
+              className={`w-8 h-8 rounded-full border border-gray-100 items-center justify-center ${chatOpen ? 'bg-blue-50' : ''}`}
             >
-              <Ionicons name="chatbubble" size={14} color="#2563eb" />
+              <Ionicons name="chatbubble" size={14} color={chatOpen ? '#2563eb' : '#D1D5DB'} />
             </TouchableOpacity>
           </View>
         </View>

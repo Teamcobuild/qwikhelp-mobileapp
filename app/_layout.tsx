@@ -7,6 +7,7 @@ import { tokenCache } from '../lib/tokenCache';
 import { NotificationProvider } from '../context/NotificationContext';
 import { LocationProvider } from '../context/LocationContext';
 import { AvatarProvider } from '../context/AvatarContext';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { LocationModal } from '../components/modals/LocationModal';
 import { CustomAlert } from '../components/modals/CustomAlert';
 import { ProviderStatus } from '../types/provider';
@@ -60,7 +61,7 @@ function InitialLayout() {
     const inRequest = segments[0] === 'request';
     const inVerificationStatus = segments[0] === 'verification-status';
     // Account screens shared by both roles.
-    const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant'].includes(segments[0] as string);
+    const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant', 'messages'].includes(segments[0] as string);
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -131,7 +132,8 @@ function InitialLayout() {
       />
       <Stack.Screen name="(provider-onboarding)" />
       <Stack.Screen name="provider-profile/[id]" />
-      <Stack.Screen name="chat/[bookingId]" />
+      <Stack.Screen name="chat/[conversationId]" />
+      <Stack.Screen name="messages" />
       <Stack.Screen name="dispute/[bookingId]" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="verification-status" />
@@ -164,6 +166,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SafeAreaProvider>
+          <KeyboardProvider>
           <NotificationProvider>
             <LocationProvider>
               <AvatarProvider>
@@ -173,6 +176,7 @@ export default function RootLayout() {
               </AvatarProvider>
             </LocationProvider>
           </NotificationProvider>
+          </KeyboardProvider>
         </SafeAreaProvider>
       </ClerkLoaded>
     </ClerkProvider>

@@ -6,8 +6,8 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { serviceName } from "../../constants/services";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
-import { alertService } from "../../lib/AlertService";
 import { BookingItem, formatJobDate, formatJobTime, JobSummary } from "../../lib/broadcast";
+import { openChat } from "../../lib/chat";
 import { useSupabase } from "../../lib/supabase";
 
 const CATEGORIES = ["All", "Upcoming", "Completed", "Pending", "Canceled"];
@@ -15,16 +15,13 @@ const CATEGORIES = ["All", "Upcoming", "Completed", "Pending", "Canceled"];
 interface HistoryItem {
     id: string;
     jobId: string;
+    offerId?: string;
     providerName: string;
     serviceName: string;
     time: string;
     status: "Pending" | "Confirmed" | "Completed" | "Canceled";
     sortAt: string;
 }
-
-// In-app calls only; phone numbers are never shared.
-const comingSoon = () =>
-    alertService.alert("Coming Soon", "In-app chat and calls with providers are coming in the next update.");
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -104,6 +101,7 @@ export default function HistoryScreen() {
             .map<HistoryItem>((b) => ({
                 id: `bk-${b.id}`,
                 jobId: b.job_id,
+                offerId: b.offer_id,
                 providerName: b.provider.name,
                 serviceName: serviceName(b.category),
                 time: when(b.scheduled_at),
@@ -138,10 +136,18 @@ export default function HistoryScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-[#FAFAFA]" edges={["top"]}>
-            <View className="px-4 pt-2 pb-6">
-                <Text className="text-xl font-bold text-center text-gray-900">
+            <View className="flex-row items-center px-4 pt-2 pb-6">
+                <View className="w-10" />
+                <Text className="flex-1 text-xl font-bold text-center text-gray-900">
                     Booking History
                 </Text>
+                <TouchableOpacity
+                    onPress={() => router.push("/messages")}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    className="w-10 h-10 rounded-full bg-white items-center justify-center"
+                >
+                    <Ionicons name="chatbubbles-outline" size={20} color="#111827" />
+                </TouchableOpacity>
             </View>
 
             <View className="pl-6 mb-6">
@@ -224,16 +230,18 @@ export default function HistoryScreen() {
                                             {item.time}
                                         </Text>
                                     </View>
-                                    <TouchableOpacity
-                                        onPress={comingSoon}
-                                        className={`w-12 h-12 rounded-full items-center justify-center ${colors.iconBg}`}
-                                    >
-                                        <Ionicons
-                                            name="call"
-                                            size={20}
-                                            color={colors.iconColor}
-                                        />
-                                    </TouchableOpacity>
+                                    {item.offerId && (
+                                        <TouchableOpacity
+                                            onPress={() => openChat(supabase, router, item.offerId)}
+                                            className={`w-12 h-12 rounded-full items-center justify-center ${colors.iconBg}`}
+                                        >
+                                            <Ionicons
+                                                name="chatbubble-ellipses"
+                                                size={20}
+                                                color={colors.iconColor}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             </TouchableOpacity>
                         );

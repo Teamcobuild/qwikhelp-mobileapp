@@ -5,8 +5,9 @@ import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 interface SupportMessage {
     id: string;
@@ -62,7 +63,7 @@ export default function SupportScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-[#F9FAFB]">
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
+            <KeyboardAvoidingView behavior="padding" className="flex-1">
                 <View className="flex-row items-center px-4 py-3 bg-white">
                     <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
                         <Ionicons name="arrow-back" size={24} color="#111827" />

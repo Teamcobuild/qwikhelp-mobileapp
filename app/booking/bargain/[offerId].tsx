@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { serviceName } from '../../../constants/services';
 import { useCountdown } from '../../../hooks/useCountdown';
@@ -16,6 +16,7 @@ import {
   OfferEvent,
 } from '../../../lib/broadcast';
 import { useSupabase } from '../../../lib/supabase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const roundTo100 = (n: number) => Math.round(n / 100) * 100;
 
@@ -134,8 +135,7 @@ export default function BargainScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <View
         className="flex-1"
       >
         {/* Header */}
@@ -155,7 +155,7 @@ export default function BargainScreen() {
           </Text>
         </View>
 
-        <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView bottomOffset={24} className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Job Summary Card (Simplified) */}
           <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm shadow-gray-100">
             <View className="flex-row items-center mb-3">
@@ -294,8 +294,8 @@ export default function BargainScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
     </SafeAreaView>
   );
 }

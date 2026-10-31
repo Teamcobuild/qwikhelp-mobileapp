@@ -10,6 +10,7 @@ import {
   formatJobTime,
   formatNaira,
 } from '@/lib/broadcast';
+import { callsComingSoon, openChat } from '@/lib/chat';
 import { useSupabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,7 @@ type JobStatusLabel = 'Confirmed' | 'On the Way' | 'In Progress' | 'Completed' |
 interface Job {
   id: string;
   jobId: string;
+  offerId?: string;
   kind: 'booking' | 'quote';
   customerName: string;
   avatarBg: string;
@@ -54,10 +56,6 @@ const BOOKING_LABEL: Record<BookingStatus, JobStatusLabel> = {
 
 const JOB_FILTERS = ['All', 'Active', 'Pending', 'Completed'] as const;
 
-// In-app chat and calls only; phone numbers are never shared.
-const comingSoon = () =>
-  alertService.alert('Coming Soon', 'In-app chat and calls with customers are coming in the next update.');
-
 export default function Jobs() {
   const router = useRouter();
   const { user } = useUser();
@@ -79,6 +77,7 @@ export default function Jobs() {
       .map<Job>((b) => ({
         id: `bk-${b.id}`,
         jobId: b.job_id,
+        offerId: b.offer_id,
         kind: 'booking',
         customerName: b.customer_name,
         avatarBg: avatarBgFor(b.customer_name),
@@ -94,6 +93,7 @@ export default function Jobs() {
       .map<Job>((f) => ({
         id: `q-${f.id}`,
         jobId: f.id,
+        offerId: f.offer!.id,
         kind: 'quote',
         customerName: f.customer_name,
         avatarBg: avatarBgFor(f.customer_name),
@@ -151,9 +151,14 @@ export default function Jobs() {
         {/* Header */}
         <View className="flex-row items-center justify-between mt-2 mb-4">
           <Text className="text-2xl font-bold text-gray-900">My Jobs</Text>
-          <View className="bg-blue-50 px-3 py-1 rounded-full">
-            <Text className="text-blue-700 text-xs font-bold">{jobs.length} Total</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/messages')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full"
+          >
+            <Ionicons name="chatbubbles-outline" size={15} color="#1D4ED8" />
+            <Text className="text-blue-700 text-xs font-bold ml-1.5">Messages</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Filter Chips */}
@@ -242,7 +247,7 @@ export default function Jobs() {
                 {/* Action Buttons */}
                 <View className="flex-row gap-2.5 mt-3 pt-2">
                   <TouchableOpacity
-                    onPress={comingSoon}
+                    onPress={() => openChat(supabase, router, job.offerId)}
                     className="flex-1 bg-blue-50 py-2.5 rounded-xl items-center flex-row justify-center"
                   >
                     <Ionicons name="chatbubble-ellipses-outline" size={15} color="#2563EB" />
@@ -250,7 +255,7 @@ export default function Jobs() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={comingSoon}
+                    onPress={callsComingSoon}
                     className="flex-1 bg-gray-50 py-2.5 rounded-xl items-center flex-row justify-center"
                   >
                     <Ionicons name="call-outline" size={15} color="#374151" />

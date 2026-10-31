@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, TouchableOpacity, View } from "react-native";
 import { alertService } from "../../lib/AlertService";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export default function SignUpForm() {
     const { isLoaded, signUp } = useSignUp();
@@ -72,7 +73,7 @@ export default function SignUpForm() {
     };
 
     return (
-        <ScrollView className="flex-1 bg-white px-4 pt-20" showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView bottomOffset={24} className="flex-1 bg-white px-4 pt-20" showsVerticalScrollIndicator={false}>
             <Typography variant="h1" className="text-center font-bold mb-2">Create Account</Typography>
             <Typography variant="body" className="text-center mb-8 text-gray-500">
                 Fill your information below or register with your social account
@@ -105,6 +106,6 @@ export default function SignUpForm() {
                     <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-apple" size={20} /></View>
                 </View>
             </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
     );
 }

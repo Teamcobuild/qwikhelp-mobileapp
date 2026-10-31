@@ -10,6 +10,7 @@ import {
   formatJobTime,
   formatNaira,
 } from '@/lib/broadcast';
+import { callsComingSoon, openChat } from '@/lib/chat';
 import { useSupabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -89,6 +90,7 @@ function bookingToJob(b: BookingItem): JobItem {
     id: `bk-${b.id}`,
     kind: 'booking',
     jobId: b.job_id,
+    offerId: b.offer_id,
     customerName: b.customer_name,
     avatarBg: avatarBgFor(b.customer_name),
     status: b.status === 'completed' ? 'Completed' : isToday(b.scheduled_at) ? 'Confirmed' : 'Upcoming',
@@ -102,10 +104,6 @@ function bookingToJob(b: BookingItem): JobItem {
 
 const FILTER_TABS = ['All', 'New Requests', 'Pending Quotes', 'Today', 'Upcoming'] as const;
 type FilterTab = typeof FILTER_TABS[number];
-
-// In-app chat and calls only; phone numbers are never shared.
-const comingSoon = () =>
-  alertService.alert('Coming Soon', 'In-app chat and calls with customers are coming in the next update.');
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -590,8 +588,9 @@ export default function Dashboard() {
                 {/* Action: Message Customer */}
                 <TouchableOpacity
                   onPress={() => {
+                    const job = selectedJobForActions;
                     setSelectedJobForActions(null);
-                    comingSoon();
+                    openChat(supabase, router, job?.offerId);
                   }}
                   className="flex-row items-center py-3.5 border-b border-gray-100"
                 >
@@ -603,7 +602,7 @@ export default function Dashboard() {
                 <TouchableOpacity
                   onPress={() => {
                     setSelectedJobForActions(null);
-                    comingSoon();
+                    callsComingSoon();
                   }}
                   className="flex-row items-center py-3.5 border-b border-gray-100"
                 >

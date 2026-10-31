@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { alertService } from "../../lib/AlertService";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export default function VerifyEmail() {
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -45,6 +46,12 @@ export default function VerifyEmail() {
     };
 
     return (
+        <KeyboardAwareScrollView
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1 }}
+            className="flex-1 bg-white"
+        >
         <View className="flex-1 bg-white px-4 pt-4 justify-center">
             <View className="items-center mb-8">
                 <Typography variant="h2">Verify your email</Typography>
@@ -66,5 +73,6 @@ export default function VerifyEmail() {
                 loading={loading}
             />
         </View>
+        </KeyboardAwareScrollView>
     );
 }

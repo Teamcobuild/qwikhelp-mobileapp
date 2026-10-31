@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const MIME_BY_EXT: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", heic: "image/heic", webp: "image/webp" };
 
@@ -93,7 +94,7 @@ export default function EditProfileScreen() {
                 <View className="w-10" />
             </View>
 
-            <ScrollView className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView bottomOffset={24} className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false}>
                 <View className="items-center mb-8">
                     <TouchableOpacity onPress={pickImage} activeOpacity={0.8} className="relative">
                         <View className="w-28 h-28 rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden">
@@ -147,7 +148,7 @@ export default function EditProfileScreen() {
                     {loading ? <ActivityIndicator color="white" className="mr-2" /> : null}
                     <Text className="text-white font-bold text-base">{loading ? "Saving..." : "Save Changes"}</Text>
                 </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScrollView>
         </SafeAreaView>
     );
 }

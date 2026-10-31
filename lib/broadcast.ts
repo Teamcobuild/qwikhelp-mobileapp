@@ -127,18 +127,22 @@ const MIME_BY_EXT: Record<string, string> = {
   webp: 'image/webp',
 };
 
-export async function uploadJobPhoto(supabase: SupabaseClient, userId: string, uri: string) {
+// Uploads a local image to {folder}/... in a storage bucket and returns its path.
+export async function uploadImage(supabase: SupabaseClient, bucket: string, folder: string, uri: string) {
   const res = await fetch(uri);
   const body = await res.arrayBuffer();
   const ext = (uri.split('?')[0].split('.').pop() || '').toLowerCase();
   const contentType = MIME_BY_EXT[ext] || 'image/jpeg';
   const fileExt = ext in MIME_BY_EXT ? ext : 'jpg';
-  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
-  const { error } = await supabase.storage.from('job-photos').upload(path, body, { contentType });
+  const { error } = await supabase.storage.from(bucket).upload(path, body, { contentType });
   if (error) throw error;
   return path;
 }
+
+export const uploadJobPhoto = (supabase: SupabaseClient, userId: string, uri: string) =>
+  uploadImage(supabase, 'job-photos', userId, uri);
 
 export async function signJobPhotos(supabase: SupabaseClient, paths: string[]) {
   if (!paths.length) return [];

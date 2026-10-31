@@ -30,7 +30,7 @@ export default function TabLayout() {
                 options={{
                     title: "Home",
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+                        <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color as string} />
                     ),
                 }}
             />
@@ -41,7 +41,7 @@ export default function TabLayout() {
                 options={{
                     title: "Booking History",
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "time" : "time-outline"} size={24} color={color} />
+                        <Ionicons name={focused ? "time" : "time-outline"} size={24} color={color as string} />
                     ),
                 }}
             />
@@ -53,12 +53,6 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, focused }) => (
                         <ProfileTabIcon color={color as string} focused={focused} />
                     ),
-                }}
-            />
-            <Tabs.Screen
-                name="index"
-                options={{
-                    href: null,
                 }}
             />
         </Tabs>

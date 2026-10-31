@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { tradeName } from '../../constants/kyc';
 import { SERVICES } from '../../constants/services';
 import { alertService } from '../../lib/AlertService';
 import { errorMessage, ProviderCard } from '../../lib/broadcast';
+import { callsComingSoon } from '../../lib/chat';
 import { useSupabase } from '../../lib/supabase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 interface ProviderProfile extends ProviderCard {
   trade_subtitle: string | null;
@@ -58,15 +60,24 @@ export default function ProviderProfileScreen() {
     (path) => supabase.storage.from('portfolio').getPublicUrl(path).data.publicUrl
   );
   const service = SERVICES.find((s) => s.id === provider.trade);
-  const comingSoon = () =>
-    alertService.alert('Coming Soon', 'In-app chat and calls with providers are coming in the next update.');
+  // Chats belong to a job; open the most recent one with this provider.
+  const openLatestChat = async () => {
+    const { data } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('provider_id', id)
+      .order('last_message_at', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) router.push({ pathname: '/chat/[conversationId]', params: { conversationId: data.id } });
+    else alertService.alert('Chat not available yet', 'You can chat once you and this provider agree on a price for a job.');
+  };
 
   return (
-    <KeyboardAvoidingView
+    <View
       className="flex-1 bg-white"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} bounces={false}>
+      <KeyboardAwareScrollView bottomOffset={24} className="flex-1" showsVerticalScrollIndicator={false} bounces={false}>
         {/* Cover Image & Header */}
         <ImageBackground
           source={{ uri: portfolio[0] || DEFAULT_COVER }}
@@ -126,11 +137,11 @@ export default function ProviderProfileScreen() {
             <Text className="text-white font-bold text-sm">Request {service?.name ?? 'Service'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={comingSoon} className="w-12 h-12 bg-orange-100 rounded-xl items-center justify-center">
+          <TouchableOpacity onPress={callsComingSoon} className="w-12 h-12 bg-orange-100 rounded-xl items-center justify-center">
             <Ionicons name="call-outline" size={20} color="#ea580c" />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={comingSoon} className="w-12 h-12 bg-blue-100 rounded-xl items-center justify-center">
+          <TouchableOpacity onPress={openLatestChat} className="w-12 h-12 bg-blue-100 rounded-xl items-center justify-center">
             <Ionicons name="chatbubble-ellipses-outline" size={20} color="#2563eb" />
           </TouchableOpacity>
         </View>
@@ -207,7 +218,7 @@ export default function ProviderProfileScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }

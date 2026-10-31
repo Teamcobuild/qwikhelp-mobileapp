@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const EXPERIENCE_OPTIONS = ['1-2 yrs', '3-5 yrs', '6+ yrs'];
 
@@ -120,7 +121,7 @@ export default function PersonalDetails() {
 
   return (
     <View className="flex-1 bg-[#F9FAFB]">
-      <ScrollView
+      <KeyboardAwareScrollView bottomOffset={24}
         className="flex-1 bg-[#F9FAFB] px-5 pt-2"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -336,7 +337,7 @@ export default function PersonalDetails() {
           </Text>
           {!loading && <Ionicons name="chevron-forward" size={18} color="white" />}
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Trade Category Selection Modal */}
       <Modal

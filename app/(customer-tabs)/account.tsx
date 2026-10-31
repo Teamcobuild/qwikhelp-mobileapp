@@ -7,6 +7,7 @@ import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ASSISTANT_ENABLED } from "../../constants/features";
 import { useAvatar } from "../../context/AvatarContext";
 import { alertService } from "../../lib/AlertService";
 
@@ -86,16 +87,18 @@ export default function AccountScreen() {
                     description="Manage your account, permissions and app preferences"
                     onPress={() => router.push("/settings")}
                 />
-                <SettingsCard
-                    iconNode={
-                        <View className="bg-[#2563EB] rounded-full w-7 h-7 items-center justify-center">
-                            <Ionicons name="sparkles" size={14} color="white" />
-                        </View>
-                    }
-                    title="QwikhelpAI"
-                    description="Our Ai is here to assist you"
-                    onPress={() => router.push("/assistant")}
-                />
+                {ASSISTANT_ENABLED && (
+                    <SettingsCard
+                        iconNode={
+                            <View className="bg-[#2563EB] rounded-full w-7 h-7 items-center justify-center">
+                                <Ionicons name="sparkles" size={14} color="white" />
+                            </View>
+                        }
+                        title="QwikhelpAI"
+                        description="Our Ai is here to assist you"
+                        onPress={() => router.push("/assistant")}
+                    />
+                )}
 
                 {/* Logout Button */}
                 <TouchableOpacity
