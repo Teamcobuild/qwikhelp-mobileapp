@@ -161,7 +161,7 @@ export default function JobRequestScreen() {
         <Text className="text-xs text-gray-500 text-center mt-1">
           The customer may have booked someone else, cancelled, or the request expired.
         </Text>
-        <TouchableOpacity onPress={() => router.back()} className="bg-blue-600 px-8 py-3 rounded-xl mt-6">
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} className="bg-blue-600 px-8 py-3 rounded-xl mt-6">
           <Text className="text-white font-bold">Back to Dashboard</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -182,7 +182,9 @@ export default function JobRequestScreen() {
           >
             <Ionicons name="arrow-back" size={20} color="#111827" />
           </TouchableOpacity>
-          <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-10">Job Request</Text>
+          <Text className="flex-1 text-center text-lg font-bold text-gray-900">Job Request</Text>
+          {/* Balances the back button so the title stays centred without covering it. */}
+          <View className="w-10" />
         </View>
 
         <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">

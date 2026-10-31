@@ -32,7 +32,7 @@ export default function BookingScreen() {
   const router = useRouter();
   const { user } = useUser();
   const supabase = useSupabase();
-  const { locationName, getPreciseCoords } = useLocation();
+  const { locationName, getPreciseCoords, savedPlace } = useLocation();
 
   const service = serviceBySlug(category) || SERVICES[0];
   const [minFare, setMinFare] = useState<number>(service.minFare);
@@ -47,8 +47,8 @@ export default function BookingScreen() {
   const [description, setDescription] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [photos, setPhotos] = useState<string[]>([]);
-  const [landmark, setLandmark] = useState<string>('');
-  const [address, setAddress] = useState<string>('');
+  const [landmark, setLandmark] = useState<string>(savedPlace?.landmark ?? '');
+  const [address, setAddress] = useState<string>(savedPlace?.address ?? '');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -142,13 +142,16 @@ export default function BookingScreen() {
         <View className="flex-row items-center px-6 py-4">
           <TouchableOpacity
             onPress={() => router.back()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100"
           >
             <Ionicons name="arrow-back" size={20} color="black" />
           </TouchableOpacity>
-          <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-8">
+          <Text className="flex-1 text-center text-lg font-bold text-gray-900">
             {service.name}
           </Text>
+          {/* Balances the back button so the title stays centred without covering it. */}
+          <View className="w-10" />
         </View>
 
         <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">

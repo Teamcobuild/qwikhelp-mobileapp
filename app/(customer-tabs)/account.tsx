@@ -1,16 +1,22 @@
+import { clearPushToken } from "@/lib/push";
+import { useSupabase } from "@/lib/supabase";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAvatar } from "../../context/AvatarContext";
 import { alertService } from "../../lib/AlertService";
 
 export default function AccountScreen() {
     const { user } = useUser();
     const { signOut } = useAuth();
+
+    const supabase = useSupabase();
     const router = useRouter();
+    const { avatarUrl } = useAvatar();
 
     const handleLogout = () => {
         alertService.alert("Logout", "Are you sure you want to logout?", [
@@ -19,6 +25,8 @@ export default function AccountScreen() {
                 text: "Logout",
                 style: "destructive",
                 onPress: async () => {
+                    await clearPushToken(supabase);
+
                     await signOut();
                     router.replace("/(auth)/sign-in");
                 },
@@ -32,22 +40,27 @@ export default function AccountScreen() {
                 {/* Profile Header */}
                 <View className="flex-row items-center justify-between mb-8">
                     <View className="flex-row items-center">
-                        <Image
-                            source={{ uri: user?.imageUrl }}
-                            className="w-[52px] h-[52px] rounded-full bg-gray-200"
-                        />
+                        <TouchableOpacity
+                            onPress={() => router.push("/edit-profile")}
+                            className="w-[52px] h-[52px] rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden"
+                        >
+                            {avatarUrl ? (
+                                <Image source={{ uri: avatarUrl }} className="w-full h-full" resizeMode="cover" />
+                            ) : (
+                                <Ionicons name="person" size={24} color="#2563EB" />
+                            )}
+                        </TouchableOpacity>
                         <View className="ml-4">
                             <Text className="text-xl font-bold text-gray-900">
-                                {user?.firstName || "Joseph"}
+                                {user?.firstName || "Your profile"}
                             </Text>
                             <Text className="text-[13px] text-gray-500 mt-0.5">
-                                {user?.emailAddresses[0]?.emailAddress ||
-                                    "Josephjoseph23@gmail.com"}
+                                {user?.primaryEmailAddress?.emailAddress}
                             </Text>
                         </View>
                     </View>
                     <TouchableOpacity 
-                        onPress={() => router.push("/(customer-tabs)/edit-profile")}
+                        onPress={() => router.push("/edit-profile")}
                         className="p-2 -mr-2"
                     >
                         <Ionicons name="create-outline" size={24} color="#2563EB" />
@@ -59,19 +72,19 @@ export default function AccountScreen() {
                     iconNode={<Ionicons name="chatbubble" size={26} color="#10B981" />}
                     title="Chat Support"
                     description="You can chat with our customer support here"
-                    onPress={() => router.push("/(customer-tabs)/chat")}
+                    onPress={() => router.push("/support")}
                 />
                 <SettingsCard
                     iconNode={<Ionicons name="location" size={26} color="#F97316" />}
                     title="Location"
                     description="You can see and edit your location here"
-                    onPress={() => router.push("/(customer-tabs)/location")}
+                    onPress={() => router.push("/location")}
                 />
                 <SettingsCard
                     iconNode={<Ionicons name="settings-sharp" size={26} color="#1F2937" />}
                     title="Settings"
-                    description="You can chat with our customer support here"
-                    onPress={() => router.push("/(customer-tabs)/settings")}
+                    description="Manage your account, permissions and app preferences"
+                    onPress={() => router.push("/settings")}
                 />
                 <SettingsCard
                     iconNode={
@@ -81,7 +94,7 @@ export default function AccountScreen() {
                     }
                     title="QwikhelpAI"
                     description="Our Ai is here to assist you"
-                    onPress={() => router.push("/(customer-tabs)/chat")}
+                    onPress={() => router.push("/assistant")}
                 />
 
                 {/* Logout Button */}
@@ -119,7 +132,7 @@ function SettingsCard({
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.7}
-            className="bg-white rounded-[20px] p-[18px] mb-[14px] flex-row items-center border border-gray-50"
+            className="bg-white rounded-[20px] p-[18px] mb-[14px] flex-row items-center"
         >
             <View className="mr-[14px] justify-center items-center w-8">
                 {iconNode}

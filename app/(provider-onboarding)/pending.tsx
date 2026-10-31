@@ -1,3 +1,5 @@
+import { clearPushToken } from '@/lib/push';
+import { useSupabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { alertService } from '@/lib/AlertService';
@@ -104,6 +106,7 @@ const STATUS_COPY: Record<ProviderStatus, StatusCopy> = {
 export default function PendingScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
+  const supabase = useSupabase();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -191,6 +194,7 @@ export default function PendingScreen() {
   };
 
   const handleSignOut = async () => {
+    await clearPushToken(supabase);
     await signOut();
     router.replace('/role-select');
   };

@@ -19,7 +19,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -172,7 +171,7 @@ export default function Jobs() {
                 onPress={() => setActiveFilter(tab)}
                 activeOpacity={0.7}
                 className={`py-2 px-4 rounded-xl mr-2.5 ${
-                  isActive ? 'bg-blue-600' : 'bg-white border border-gray-200'
+                  isActive ? 'bg-blue-600' : 'bg-white'
                 }`}
               >
                 <Text
@@ -191,7 +190,7 @@ export default function Jobs() {
         <View className="pb-10">
           {loading && <ActivityIndicator color="#2563EB" className="mt-10" />}
           {!loading && filtered.length === 0 && (
-            <View className="bg-white rounded-[22px] border border-gray-200 p-8 items-center justify-center my-4">
+            <View className="bg-white rounded-[22px] p-8 items-center justify-center my-4">
               <Ionicons name="briefcase-outline" size={36} color="#9CA3AF" />
               <Text className="text-base font-bold text-gray-900 mt-3">No jobs yet</Text>
               <Text className="text-xs text-gray-500 text-center mt-1">
@@ -206,8 +205,7 @@ export default function Jobs() {
                 key={job.id}
                 activeOpacity={job.kind === 'quote' ? 0.85 : 1}
                 onPress={() => job.kind === 'quote' && router.push({ pathname: '/request/[jobId]', params: { jobId: job.jobId } })}
-                style={styles.card}
-                className="bg-white rounded-[22px] border border-gray-200 p-4 mb-4"
+                className="bg-white rounded-[22px] p-4 mb-4"
               >
                 <View className="flex-row items-start justify-between">
                   <View className="flex-row items-center flex-1 pr-2">
@@ -253,7 +251,7 @@ export default function Jobs() {
 
                   <TouchableOpacity
                     onPress={comingSoon}
-                    className="flex-1 bg-gray-50 py-2.5 rounded-xl items-center flex-row justify-center border border-gray-200"
+                    className="flex-1 bg-gray-50 py-2.5 rounded-xl items-center flex-row justify-center"
                   >
                     <Ionicons name="call-outline" size={15} color="#374151" />
                     <Text className="text-gray-700 font-bold text-xs ml-1.5">Call in App</Text>
@@ -267,13 +265,3 @@ export default function Jobs() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-});

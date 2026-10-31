@@ -7,57 +7,32 @@ import { useNotifications } from "../context/NotificationContext";
 
 const CATEGORIES = ["All", "Unread messages", "Read messages"];
 
-const getNotificationIcon = (type: string) => {
-    switch (type) {
-        case "booking_confirmed":
-            return {
-                icon: "receipt" as any,
-                color: "#10B981", // emerald-500
-                bg: "bg-[#ECFDF5]", // emerald-50
-            };
-        case "provider_on_the_way":
-            return {
-                icon: "car" as any,
-                color: "#2563EB", // blue-600
-                bg: "bg-[#EFF6FF]", // blue-50
-            };
-        case "payment_successful":
-            return {
-                icon: "logo-usd" as any,
-                color: "#10B981", // emerald-500
-                bg: "bg-[#ECFDF5]", // emerald-50
-            };
-        case "service_completed":
-            return {
-                icon: "checkmark-circle" as any,
-                color: "#10B981", // emerald-500
-                bg: "bg-[#ECFDF5]", // emerald-50
-            };
-        case "system_update":
-            return {
-                icon: "construct" as any,
-                color: "#1E3A8A", // blue-900
-                bg: "bg-[#EFF6FF]", // blue-50
-            };
-        case "support_message":
-            return {
-                icon: "chatbubble" as any,
-                color: "#1E3A8A", // blue-900
-                bg: "bg-[#EFF6FF]", // blue-50
-            };
-        default:
-            return {
-                icon: "notifications" as any,
-                color: "#6B7280",
-                bg: "bg-gray-50",
-            };
-    }
+type IconName = keyof typeof Ionicons.glyphMap;
+
+const ICONS: Record<string, { icon: IconName; color: string; bg: string }> = {
+    job_request: { icon: "briefcase", color: "#2563EB", bg: "bg-[#EFF6FF]" },
+    offer_counter: { icon: "pricetag", color: "#D97706", bg: "bg-[#FFFBEB]" },
+    offer_final_counter: { icon: "pricetag", color: "#D97706", bg: "bg-[#FFFBEB]" },
+    offer_agreed: { icon: "thumbs-up", color: "#10B981", bg: "bg-[#ECFDF5]" },
+    offer_declined: { icon: "close-circle", color: "#DC2626", bg: "bg-[#FEF2F2]" },
+    offer_walked_away: { icon: "close-circle", color: "#DC2626", bg: "bg-[#FEF2F2]" },
+    offer_withdrawn: { icon: "close-circle", color: "#DC2626", bg: "bg-[#FEF2F2]" },
+    offer_not_selected: { icon: "people", color: "#6B7280", bg: "bg-gray-50" },
+    offer_expired: { icon: "time", color: "#6B7280", bg: "bg-gray-50" },
+    booking_confirmed: { icon: "receipt", color: "#10B981", bg: "bg-[#ECFDF5]" },
+    booking_cancelled: { icon: "close-circle", color: "#DC2626", bg: "bg-[#FEF2F2]" },
+    provider_on_the_way: { icon: "car", color: "#2563EB", bg: "bg-[#EFF6FF]" },
+    service_started: { icon: "construct", color: "#2563EB", bg: "bg-[#EFF6FF]" },
+    service_completed: { icon: "checkmark-circle", color: "#10B981", bg: "bg-[#ECFDF5]" },
+    support_message: { icon: "chatbubble", color: "#1E3A8A", bg: "bg-[#EFF6FF]" },
 };
+
+const getNotificationIcon = (type: string) => ICONS[type] ?? { icon: "notifications" as IconName, color: "#6B7280", bg: "bg-gray-50" };
 
 export default function NotificationsScreen() {
     const router = useRouter();
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const { notifications, markAsRead } = useNotifications();
+    const { notifications, unreadCount, markAllAsRead, open } = useNotifications();
 
     const filteredNotifications = notifications.filter((item) => {
         if (selectedCategory === "All") return true;
@@ -72,13 +47,14 @@ export default function NotificationsScreen() {
             <View className="flex-row items-center justify-between px-4 pt-4 pb-6">
                 <TouchableOpacity
                     onPress={() => router.back()}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100"
                 >
                     <Ionicons name="arrow-back" size={20} color="black" />
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Notification</Text>
-                <TouchableOpacity>
-                    <Ionicons name="settings-outline" size={24} color="black" />
+                <TouchableOpacity onPress={markAllAsRead} disabled={unreadCount === 0} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Text className={`text-sm font-semibold ${unreadCount ? "text-[#2563EB]" : "text-gray-300"}`}>Mark all read</Text>
                 </TouchableOpacity>
             </View>
 
@@ -116,14 +92,21 @@ export default function NotificationsScreen() {
                 className="flex-1 px-4"
                 showsVerticalScrollIndicator={false}
             >
+                {filteredNotifications.length === 0 && (
+                    <View className="items-center mt-16 px-8">
+                        <Ionicons name="notifications-off-outline" size={40} color="#9CA3AF" />
+                        <Text className="text-base font-bold text-gray-900 mt-3">No notifications</Text>
+                        <Text className="text-sm text-gray-500 text-center mt-1">
+                            Updates about your jobs, offers and bookings will show up here.
+                        </Text>
+                    </View>
+                )}
                 {filteredNotifications.map((item) => {
                     const iconConfig = getNotificationIcon(item.type);
                     return (
                         <TouchableOpacity
                             key={item.id}
-                            onPress={() => {
-                                if (!item.isRead) markAsRead(item.id);
-                            }}
+                            onPress={() => open(item)}
                             activeOpacity={0.8}
                             className={`bg-white rounded-[20px] p-5 mb-4 border ${!item.isRead ? "border-blue-200 bg-blue-50/30" : "border-gray-100"
                                 }`}
@@ -152,14 +135,6 @@ export default function NotificationsScreen() {
                                     </Text>
                                 </View>
                             </View>
-
-                            {item.button && (
-                                <TouchableOpacity className="mt-4 border border-[#2563EB] rounded-[14px] py-3 items-center">
-                                    <Text className="text-[#2563EB] font-semibold text-sm">
-                                        {item.button}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
                         </TouchableOpacity>
                     );
                 })}

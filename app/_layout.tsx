@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenCache } from '../lib/tokenCache';
 import { NotificationProvider } from '../context/NotificationContext';
 import { LocationProvider } from '../context/LocationContext';
+import { AvatarProvider } from '../context/AvatarContext';
 import { LocationModal } from '../components/modals/LocationModal';
 import { CustomAlert } from '../components/modals/CustomAlert';
 import { ProviderStatus } from '../types/provider';
@@ -58,6 +59,8 @@ function InitialLayout() {
     const inDispute = segments[0] === 'dispute';
     const inRequest = segments[0] === 'request';
     const inVerificationStatus = segments[0] === 'verification-status';
+    // Account screens shared by both roles.
+    const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant'].includes(segments[0] as string);
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -75,7 +78,7 @@ function InitialLayout() {
 
     // signed in, role is customer
     if (role === 'customer') {
-      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat && !inProviderProfile && !inDispute) {
+      if (!inCustomerTabs && !inNotifications && !inBooking && !inChat && !inProviderProfile && !inDispute && !inAccountScreen) {
         router.replace('/(customer-tabs)/home');
       }
       return;
@@ -94,7 +97,7 @@ function InitialLayout() {
       }
 
       // Allow providers to access provider tabs and shared screens
-      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inVerificationStatus || inRequest;
+      const inProviderAllowed = inProviderTabs || inChat || inNotifications || inDispute || inVerificationStatus || inRequest || inAccountScreen;
       if (providerVerified && !inProviderAllowed) {
         router.replace('/(provider-tabs)/dashboard');
       }
@@ -134,6 +137,11 @@ function InitialLayout() {
       <Stack.Screen name="verification-status" />
       <Stack.Screen name="booking/[category]" />
       <Stack.Screen name="request/[jobId]" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="support" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="location" />
+      <Stack.Screen name="assistant" />
     </Stack>
   );
 }
@@ -158,9 +166,11 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <NotificationProvider>
             <LocationProvider>
-              <InitialLayout />
-              <LocationModal />
-              <CustomAlert />
+              <AvatarProvider>
+                <InitialLayout />
+                <LocationModal />
+                <CustomAlert />
+              </AvatarProvider>
             </LocationProvider>
           </NotificationProvider>
         </SafeAreaProvider>

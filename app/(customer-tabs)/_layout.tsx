@@ -1,3 +1,4 @@
+import { ProfileTabIcon } from "@/components/ui/ProfileTabIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
@@ -50,18 +51,12 @@ export default function TabLayout() {
                 options={{
                     title: "Account",
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+                        <ProfileTabIcon color={color as string} focused={focused} />
                     ),
                 }}
             />
             <Tabs.Screen
                 name="index"
-                options={{
-                    href: null,
-                }}
-            />
-            <Tabs.Screen
-                name="edit-profile"
                 options={{
                     href: null,
                 }}

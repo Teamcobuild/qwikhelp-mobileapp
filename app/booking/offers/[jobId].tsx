@@ -123,12 +123,14 @@ export default function OffersScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="flex-row items-center px-6 py-4">
-        <TouchableOpacity onPress={goHome} className="w-10 h-10 items-center justify-center -ml-2">
+        <TouchableOpacity onPress={goHome} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} className="w-10 h-10 items-center justify-center -ml-2">
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-8">
+        <Text className="flex-1 text-center text-lg font-bold text-gray-900">
           Offers For your Job
         </Text>
+        {/* Balances the back button so the title stays centred without covering it. */}
+        <View className="w-10" />
       </View>
 
       <ScrollView

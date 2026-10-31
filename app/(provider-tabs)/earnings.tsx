@@ -5,7 +5,6 @@ import {
   Modal,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -84,7 +83,7 @@ export default function Earnings() {
           <Text className="text-2xl font-bold text-gray-900">Wallet</Text>
           <TouchableOpacity
             onPress={() => alertService.alert('Payout Settings', 'Bank details: Kuda Bank (•••• 4921)\nAccount Name: Emeka Okonkwo')}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 items-center justify-center"
+            className="w-10 h-10 rounded-full bg-white items-center justify-center"
           >
             <Ionicons name="card-outline" size={20} color="#374151" />
           </TouchableOpacity>
@@ -92,7 +91,6 @@ export default function Earnings() {
 
         {/* Big Navy Blue Wallet Balance Card */}
         <View
-          style={styles.card}
           className="bg-[#0B3356] rounded-[24px] p-5 justify-between mb-5"
         >
           <View className="flex-row items-center justify-between mb-4">
@@ -136,8 +134,7 @@ export default function Earnings() {
         {/* Monthly Summary Stats */}
         <View className="flex-row justify-between mb-6">
           <View
-            style={styles.card}
-            className="w-[48%] bg-white rounded-2xl border border-gray-200 p-4"
+            className="w-[48%] bg-white rounded-2xl p-4"
           >
             <Text className="text-xs text-gray-500 font-medium">This Month</Text>
             <Text className="text-lg font-bold text-emerald-600 mt-1">+₦145,000</Text>
@@ -145,8 +142,7 @@ export default function Earnings() {
           </View>
 
           <View
-            style={styles.card}
-            className="w-[48%] bg-white rounded-2xl border border-gray-200 p-4"
+            className="w-[48%] bg-white rounded-2xl p-4"
           >
             <Text className="text-xs text-gray-500 font-medium">Pending Clearance</Text>
             <Text className="text-lg font-bold text-amber-600 mt-1">₦25,000</Text>
@@ -166,8 +162,7 @@ export default function Earnings() {
           {TRANSACTIONS.map((tx) => (
             <View
               key={tx.id}
-              style={styles.card}
-              className="bg-white rounded-2xl border border-gray-200 p-4 mb-3 flex-row items-center justify-between"
+              className="bg-white rounded-2xl p-4 mb-3 flex-row items-center justify-between"
             >
               <View className="flex-row items-center flex-1 pr-3">
                 <View
@@ -221,7 +216,7 @@ export default function Earnings() {
                   Funds will be transferred to Kuda MFB (•••• 4921)
                 </Text>
 
-                <View className="bg-gray-50 rounded-2xl p-4 border border-gray-200 mb-4">
+                <View className="bg-gray-50 rounded-2xl p-4 mb-4">
                   <Text className="text-xs text-gray-500 font-medium">Enter Amount (₦)</Text>
                   <TextInput
                     value={withdrawAmount}
@@ -254,13 +249,3 @@ export default function Earnings() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-});

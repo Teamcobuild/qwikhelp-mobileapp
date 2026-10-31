@@ -1,6 +1,29 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
+import { registerForPush } from '@/lib/push';
+import { useSupabase } from '@/lib/supabase';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-export type NotificationType = "booking_confirmed" | "provider_on_the_way" | "payment_successful" | "service_completed" | "system_update" | "support_message";
+// Matches public.notifications.type (written by the database triggers).
+export type NotificationType =
+    | 'job_request'
+    | 'offer_counter'
+    | 'offer_final_counter'
+    | 'offer_agreed'
+    | 'offer_declined'
+    | 'offer_walked_away'
+    | 'offer_expired'
+    | 'offer_withdrawn'
+    | 'offer_not_selected'
+    | 'booking_confirmed'
+    | 'booking_cancelled'
+    | 'provider_on_the_way'
+    | 'service_started'
+    | 'service_completed'
+    | 'support_message'
+    | (string & {});
 
 export interface NotificationItem {
     id: string;
@@ -9,7 +32,17 @@ export interface NotificationItem {
     time: string;
     type: NotificationType;
     isRead: boolean;
-    button?: string;
+    url?: string;
+}
+
+interface NotificationRow {
+    id: string;
+    type: string;
+    title: string;
+    body: string;
+    data: { url?: string } | null;
+    read_at: string | null;
+    created_at: string;
 }
 
 interface NotificationContextValue {
@@ -17,82 +50,108 @@ interface NotificationContextValue {
     unreadCount: number;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
+    open: (item: NotificationItem) => void;
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-const INITIAL_MOCK_NOTIFICATIONS: NotificationItem[] = [
-    {
-        id: "1",
-        title: "Booking Confirmed",
-        description: "Your booking for Egusi Soup with Joseph Prosper is confirmed for Sat, Sept 28 at 5:00 PM",
-        time: "10m ago",
-        type: "booking_confirmed",
-        isRead: false,
-    },
-    {
-        id: "2",
-        title: "Provider on the way",
-        description: "Your provider is on the way",
-        time: "30m ago",
-        type: "provider_on_the_way",
-        isRead: false,
-        button: "Live tracking",
-    },
-    {
-        id: "3",
-        title: "Payment Successful",
-        description: "Your payment of $2700 was successful",
-        time: "1 day ago",
-        type: "payment_successful",
-        isRead: true,
-    },
-    {
-        id: "4",
-        title: "Service Completed",
-        description: "Service completed. Please rate your provider",
-        time: "1hr ago",
-        type: "service_completed",
-        isRead: false,
-        button: "Rate provider",
-    },
-    {
-        id: "5",
-        title: "System Update",
-        description: "Update your app to enjoy faster booking",
-        time: "1 day ago",
-        type: "system_update",
-        isRead: true,
-    },
-    {
-        id: "6",
-        title: "Support Message",
-        description: "Need help? Our support team is available 24/7",
-        time: "1 day ago",
-        type: "support_message",
-        isRead: true,
-    },
-];
+const timeAgo = (iso: string) => {
+    const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const toItem = (r: NotificationRow): NotificationItem => ({
+    id: r.id,
+    title: r.title,
+    description: r.body,
+    time: timeAgo(r.created_at),
+    type: r.type,
+    isRead: !!r.read_at,
+    url: r.data?.url,
+});
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
-    const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_MOCK_NOTIFICATIONS);
+    const { isSignedIn } = useAuth();
+    const { user } = useUser();
+    const supabase = useSupabase();
+    const router = useRouter();
+    const [rows, setRows] = useState<NotificationRow[]>([]);
 
-    const unreadCount = useMemo(() => {
-        return notifications.filter(n => !n.isRead).length;
-    }, [notifications]);
+    const load = useCallback(async () => {
+        if (!isSignedIn) {
+            setRows([]);
+            return;
+        }
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('id, type, title, body, data, read_at, created_at')
+            .order('created_at', { ascending: false })
+            .limit(100);
+        if (error) console.warn('Notifications fetch error:', error.message);
+        else setRows(data as NotificationRow[]);
+    }, [supabase, isSignedIn]);
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev => 
-            prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-        );
-    };
+    useEffect(() => {
+        load();
+    }, [load]);
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    };
+    useRealtimeRefresh(isSignedIn && user ? `notifications:${user.id}` : null, [
+        { table: 'notifications', filter: `user_id=eq.${user?.id}` },
+    ], load);
+
+    // Link this device to the signed-in user for push.
+    useEffect(() => {
+        if (!isSignedIn || !user) return;
+        registerForPush(supabase).catch((err) => console.warn('Push registration failed:', err?.message ?? err));
+    }, [isSignedIn, user?.id, supabase]);
+
+    const markAsRead = useCallback(async (id: string) => {
+        setRows((prev) => prev.map((r) => (r.id === id && !r.read_at ? { ...r, read_at: new Date().toISOString() } : r)));
+        await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id).is('read_at', null);
+    }, [supabase]);
+
+    const markAllAsRead = useCallback(async () => {
+        const now = new Date().toISOString();
+        setRows((prev) => prev.map((r) => (r.read_at ? r : { ...r, read_at: now })));
+        await supabase.from('notifications').update({ read_at: now }).is('read_at', null);
+    }, [supabase]);
+
+    const open = useCallback((item: NotificationItem) => {
+        if (!item.isRead) markAsRead(item.id);
+        if (item.url) router.push(item.url as any);
+    }, [markAsRead, router]);
+
+    // Tapping a push (including one that launched the app) opens its screen.
+    const lastResponse = Notifications.useLastNotificationResponse();
+    const handledResponse = useRef<string | null>(null);
+    useEffect(() => {
+        if (!isSignedIn || !user || !lastResponse) return;
+        const id = lastResponse.notification.request.identifier;
+        if (handledResponse.current === id) return;
+        handledResponse.current = id;
+
+        const data = lastResponse.notification.request.content.data as { url?: string; notificationId?: string };
+        if (data?.notificationId) markAsRead(data.notificationId);
+        // Let the root layout finish its role-based redirect first on a cold start.
+        if (data?.url) setTimeout(() => router.push(data.url as any), 400);
+    }, [lastResponse, isSignedIn, user, markAsRead, router]);
+
+    const notifications = useMemo(() => rows.map(toItem), [rows]);
+    const unreadCount = useMemo(() => rows.filter((r) => !r.read_at).length, [rows]);
+
+    // Keep the app icon badge in step with unread notifications.
+    useEffect(() => {
+        Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+    }, [unreadCount]);
 
     return (
-        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead }}>
+        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, open }}>
             {children}
         </NotificationContext.Provider>
     );

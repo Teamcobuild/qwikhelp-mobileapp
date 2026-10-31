@@ -1,15 +1,21 @@
+import { clearPushToken } from '@/lib/push';
+import { useSupabase } from '@/lib/supabase';
+import { useAvatar } from '@/context/AvatarContext';
 import { alertService } from '@/lib/AlertService';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProviderAccount() {
   const { user } = useUser();
   const { signOut } = useAuth();
+
+  const supabase = useSupabase();
   const router = useRouter();
+  const { avatarUrl } = useAvatar();
 
   const handleLogout = () => {
     alertService.alert('Logout', 'Are you sure you want to logout?', [
@@ -18,6 +24,8 @@ export default function ProviderAccount() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
+          await clearPushToken(supabase);
+
           await signOut();
           router.replace('/(auth)/sign-in');
         },
@@ -35,20 +43,15 @@ export default function ProviderAccount() {
 
         {/* Profile Card */}
         <View
-          style={styles.card}
-          className="bg-white rounded-[22px] border border-gray-200 p-5 mb-5"
+          className="bg-white rounded-[22px] p-5 mb-5"
         >
           <View className="flex-row items-center">
-            <View className="w-16 h-16 rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden border-2 border-blue-100">
-              <Image
-                source={{
-                  uri:
-                    user?.imageUrl ||
-                    `https://api.dicebear.com/7.x/avataaars/png?seed=${firstName}&backgroundColor=dcebfe`,
-                }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
+            <View className="w-16 h-16 rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden">
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} className="w-full h-full" resizeMode="cover" />
+              ) : (
+                <Ionicons name="person" size={28} color="#2563EB" />
+              )}
             </View>
             <View className="ml-4 flex-1">
               <View className="flex-row items-center">
@@ -94,8 +97,7 @@ export default function ProviderAccount() {
 
         {/* Menu Items */}
         <View
-          style={styles.card}
-          className="bg-white rounded-[22px] border border-gray-200 p-2 mb-5"
+          className="bg-white rounded-[22px] p-2 mb-5"
         >
           <MenuItem
             icon="person-outline"
@@ -125,8 +127,7 @@ export default function ProviderAccount() {
 
         {/* Support Section */}
         <View
-          style={styles.card}
-          className="bg-white rounded-[22px] border border-gray-200 p-2 mb-6"
+          className="bg-white rounded-[22px] p-2 mb-6"
         >
           <MenuItem
             icon="help-circle-outline"
@@ -145,8 +146,7 @@ export default function ProviderAccount() {
         {/* Logout Button */}
         <TouchableOpacity
           onPress={handleLogout}
-          style={styles.card}
-          className="bg-white rounded-2xl border border-rose-100 p-4 flex-row items-center justify-center mb-10"
+          className="bg-white rounded-2xl p-4 flex-row items-center justify-center mb-10"
         >
           <Ionicons name="log-out-outline" size={20} color="#E11D48" />
           <Text className="text-rose-600 font-bold ml-2">Log Out</Text>
@@ -173,7 +173,7 @@ function MenuItem({
       activeOpacity={0.7}
       className="flex-row items-center p-3 rounded-xl"
     >
-      <View className="w-10 h-10 rounded-xl bg-gray-50 items-center justify-center mr-3 border border-gray-100">
+      <View className="w-10 h-10 rounded-xl bg-gray-50 items-center justify-center mr-3">
         <Ionicons name={icon} size={19} color="#374151" />
       </View>
       <View className="flex-1">
@@ -184,13 +184,3 @@ function MenuItem({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-});

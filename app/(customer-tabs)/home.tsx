@@ -126,6 +126,7 @@ export default function HomeScreen() {
 
             {/* floating assistant button */}
             <TouchableOpacity
+                onPress={() => router.push("/assistant")}
                 className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-300"
                 activeOpacity={0.8}
             >

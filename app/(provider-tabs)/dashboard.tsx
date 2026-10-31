@@ -1,3 +1,4 @@
+import { useAvatar } from '@/context/AvatarContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { alertService } from '@/lib/AlertService';
@@ -21,7 +22,6 @@ import {
   Modal,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -112,9 +112,9 @@ export default function Dashboard() {
   const supabase = useSupabase();
   const router = useRouter();
   const { unreadCount } = useNotifications();
+  const { avatarUrl, reload: reloadAvatar } = useAvatar();
 
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [online, setOnline] = useState(false);
@@ -132,13 +132,12 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [{ data: p, error }, { data: me }, feedRes, bookingsRes] = await Promise.all([
+      const [{ data: p, error }, feedRes, bookingsRes] = await Promise.all([
         supabase
           .from('provider_profiles')
           .select('trade, city, is_online, rating, review_count')
           .eq('user_id', user.id)
           .maybeSingle(),
-        supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle(),
         supabase.rpc('get_provider_feed'),
         supabase.rpc('get_my_bookings'),
       ]);
@@ -148,7 +147,6 @@ export default function Dashboard() {
       }
       setProfile(p);
       setOnline(p?.is_online ?? false);
-      setAvatarUrl(me?.avatar_url ?? null);
 
       if (feedRes.error) console.warn('Feed error:', errorMessage(feedRes.error));
       const nextFeed = (feedRes.data ?? []) as FeedItem[];
@@ -183,6 +181,7 @@ export default function Dashboard() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+    reloadAvatar();
   };
 
   const handleUpdateStatus = async (nextOnline: boolean) => {
@@ -299,17 +298,12 @@ export default function Dashboard() {
         <View className="flex-row items-center justify-between mt-2">
           {/* Left: Avatar & Greeting */}
           <View className="flex-row items-center flex-1 pr-3">
-            <View className="w-12 h-12 rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden border border-blue-100">
-              <Image
-                source={{
-                  uri:
-                    avatarUrl ||
-                    user?.imageUrl ||
-                    `https://api.dicebear.com/7.x/avataaars/png?seed=${firstName}&backgroundColor=dcebfe`,
-                }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
+            <View className="w-12 h-12 rounded-full bg-[#E0EDFF] items-center justify-center overflow-hidden">
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} className="w-full h-full" resizeMode="cover" />
+              ) : (
+                <Ionicons name="person" size={22} color="#2563EB" />
+              )}
             </View>
             <Text className="text-[17px] font-bold text-gray-900 ml-3 flex-1" numberOfLines={1}>
               {getGreeting()}, {firstName}! 👋
@@ -320,7 +314,7 @@ export default function Dashboard() {
           <TouchableOpacity
             onPress={() => router.push('/notifications')}
             activeOpacity={0.7}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 items-center justify-center relative shadow-xs"
+            className="w-10 h-10 rounded-full bg-white items-center justify-center relative"
           >
             <Ionicons name="notifications-outline" size={20} color="#111827" />
             {unreadCount > 0 && (
@@ -337,7 +331,7 @@ export default function Dashboard() {
         <TouchableOpacity
           onPress={() => setStatusModalVisible(true)}
           activeOpacity={0.7}
-          className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-1.5 mt-3 self-start shadow-xs"
+          className="flex-row items-center bg-white rounded-xl px-3 py-1.5 mt-3 self-start"
         >
           {online ? (
             <View className="w-3.5 h-3.5 rounded-full border border-emerald-400 items-center justify-center mr-2 bg-emerald-50">
@@ -358,8 +352,7 @@ export default function Dashboard() {
         <View className="flex-row flex-wrap justify-between mt-4">
           {/* Card 1: Today's Bookings */}
           <View
-            style={styles.card}
-            className="w-[48%] bg-white rounded-[20px]  p-4 h-[126px] justify-between mb-3.5"
+            className="w-[48%] bg-white rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Today’s Bookings</Text>
             <Text className="text-[28px] font-bold text-blue-600">{metrics.today}</Text>
@@ -367,7 +360,6 @@ export default function Dashboard() {
 
           {/* Card 2: Pending Quote's */}
           <View
-            style={styles.card}
             className="w-[48%] bg-white rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Pending Quote’s</Text>
@@ -376,7 +368,6 @@ export default function Dashboard() {
 
           {/* Card 3: Completed Bookings */}
           <View
-            style={styles.card}
             className="w-[48%] bg-white rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <Text className="text-[13px] font-bold text-gray-900">Completed Bookings</Text>
@@ -385,7 +376,6 @@ export default function Dashboard() {
 
           {/* Card 4: Account Balance (Navy Blue) */}
           <View
-            style={styles.card}
             className="w-[48%] bg-blue-600 rounded-[20px] p-4 h-[126px] justify-between mb-3.5"
           >
             <View className="flex-row items-center justify-between">
@@ -421,7 +411,7 @@ export default function Dashboard() {
                 key={tab}
                 onPress={() => setSelectedFilter(tab)}
                 activeOpacity={0.7}
-                className={`py-2.5 px-5 rounded-xl mr-2.5 ${isActive ? 'bg-blue-600' : 'bg-white border border-gray-200'
+                className={`py-2.5 px-5 rounded-xl mr-2.5 ${isActive ? 'bg-blue-600' : 'bg-white'
                   }`}
               >
                 <Text
@@ -438,7 +428,7 @@ export default function Dashboard() {
         {/* Bookings / Jobs Feed */}
         <View className="pb-10">
           {filteredJobs.length === 0 ? (
-            <View className="bg-white rounded-[22px] border border-gray-200 p-8 items-center justify-center my-4">
+            <View className="bg-white rounded-[22px] p-8 items-center justify-center my-4">
               <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
               <Text className="text-base font-bold text-gray-900 mt-3">
                 {selectedFilter === 'New Requests' || selectedFilter === 'All' ? 'No requests yet' : 'No bookings found'}
@@ -457,8 +447,7 @@ export default function Dashboard() {
                   key={job.id}
                   activeOpacity={0.85}
                   onPress={() => openJob(job)}
-                  style={styles.card}
-                  className="bg-white rounded-[22px] border border-gray-200 p-4 mb-4"
+                  className="bg-white rounded-[22px] p-4 mb-4"
                 >
                   {/* Card Header: Avatar & Menu */}
                   <View className="flex-row items-start justify-between">
@@ -676,13 +665,3 @@ export default function Dashboard() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-});

@@ -3,6 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 
 export type Coords = { latitude: number; longitude: number };
+// Default service address, kept on the device only (the exact address is private until a booking is locked).
+export type SavedPlace = { address: string; landmark: string };
+
+const SAVED_PLACE_KEY = "savedPlace";
 
 type LocationContextType = {
   hasLocationPermission: boolean | null;
@@ -12,6 +16,9 @@ type LocationContextType = {
   getPreciseCoords: () => Promise<Coords>;
   requestPermission: () => Promise<void>;
   showModal: boolean;
+  refreshLocation: () => Promise<void>;
+  savedPlace: SavedPlace | null;
+  savePlace: (place: SavedPlace) => Promise<void>;
 };
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -21,10 +28,19 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
   const [locationName, setLocationName] = useState<string | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [savedPlace, setSavedPlace] = useState<SavedPlace | null>(null);
 
   useEffect(() => {
     checkLocationStatus();
+    SecureStore.getItemAsync(SAVED_PLACE_KEY)
+      .then((raw) => raw && setSavedPlace(JSON.parse(raw)))
+      .catch(() => {});
   }, []);
+
+  const savePlace = async (place: SavedPlace) => {
+    await SecureStore.setItemAsync(SAVED_PLACE_KEY, JSON.stringify(place));
+    setSavedPlace(place);
+  };
 
   const checkLocationStatus = async () => {
     try {
@@ -101,6 +117,19 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
     return next;
   };
 
+  // Ignores the last known position so the user gets a fresh fix.
+  const refreshLocation = async () => {
+    const fix = await getPreciseCoords();
+    const [address] = await Location.reverseGeocodeAsync(fix);
+    if (address) {
+      const formattedName = `${address.region || address.city || "Unknown State"}, ${address.country || "Unknown Country"}`;
+      setLocationName(formattedName);
+      await SecureStore.setItemAsync("cachedLocationName", formattedName);
+    }
+    setHasLocationPermission(true);
+    setShowModal(false);
+  };
+
   const requestPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -125,6 +154,9 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
         getPreciseCoords,
         requestPermission,
         showModal,
+        refreshLocation,
+        savedPlace,
+        savePlace,
       }}
     >
       {children}

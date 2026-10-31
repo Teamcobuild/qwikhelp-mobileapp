@@ -141,12 +141,14 @@ export default function BargainScreen() {
         {/* Header */}
         <View className="px-6 py-4">
           <View className="flex-row items-center mb-2">
-            <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2">
+            <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} className="w-10 h-10 items-center justify-center -ml-2">
               <Ionicons name="arrow-back" size={24} color="black" />
             </TouchableOpacity>
-            <Text className="flex-1 text-center text-lg font-bold text-gray-900 -ml-8">
+            <Text className="flex-1 text-center text-lg font-bold text-gray-900">
               Bargain with {firstName}
             </Text>
+            {/* Balances the back button so the title stays centred without covering it. */}
+            <View className="w-10" />
           </View>
           <Text className="text-gray-400 text-center text-sm">
             {myTurn ? 'Accept, decline, or send one final counter offer.' : statusHint(offer, firstName)}

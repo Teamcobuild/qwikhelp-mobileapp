@@ -418,3 +418,7 @@ enabled = true
 [functions.provider-status-sync]
 # Authenticated by the x-webhook-secret header sent from the database trigger.
 verify_jwt = false
+
+[functions.qwikhelp-ai]
+# Clerk session tokens are verified inside the function.
+verify_jwt = false
