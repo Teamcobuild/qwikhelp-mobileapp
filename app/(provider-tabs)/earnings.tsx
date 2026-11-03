@@ -1,3 +1,4 @@
+import { EmptyEarningsArt, EmptyState } from '@/components/illustrations/EmptyStates';
 import { serviceName } from '@/constants/services';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { alertService } from '@/lib/AlertService';
@@ -117,10 +118,12 @@ export default function Earnings() {
         <View className="pb-10">
           {loading && <ActivityIndicator color="#2563EB" className="mt-6" />}
           {!loading && stats.history.length === 0 && (
-            <View className="bg-white rounded-2xl p-8 items-center">
-              <Ionicons name="wallet-outline" size={36} color="#9CA3AF" />
-              <Text className="text-base font-bold text-gray-900 mt-3">No earnings yet</Text>
-              <Text className="text-xs text-gray-500 text-center mt-1">Your booked and completed jobs will appear here.</Text>
+            <View className="bg-white rounded-2xl py-6">
+              <EmptyState
+                art={<EmptyEarningsArt width={180} />}
+                title="No earnings yet"
+                message="Your booked and completed jobs will appear here."
+              />
             </View>
           )}
           {stats.history.map((b) => {

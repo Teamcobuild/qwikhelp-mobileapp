@@ -1,9 +1,13 @@
 import { ProfileTabIcon } from "@/components/ui/ProfileTabIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+    // Edge-to-edge Android draws under the system nav bar, so lift the tabs above it (and the iOS home indicator).
+    const insets = useSafeAreaInsets();
+    const bottomPadding = Math.max(insets.bottom, 10);
+
     return (
         <Tabs
             screenOptions={{
@@ -12,8 +16,8 @@ export default function TabLayout() {
                     backgroundColor: "white",
                     borderTopWidth: 0,
                     elevation: 0,
-                    height: Platform.OS === 'ios' ? 85 : 60,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    height: 50 + bottomPadding,
+                    paddingBottom: bottomPadding,
                     paddingTop: 10,
                 },
                 tabBarActiveTintColor: "#2563EB",
@@ -39,9 +43,19 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="history"
                 options={{
-                    title: "Booking History",
+                    title: "Bookings",
                     tabBarIcon: ({ color, focused }) => (
                         <Ionicons name={focused ? "time" : "time-outline"} size={24} color={color as string} />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="messages"
+                options={{
+                    title: "Messages",
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={24} color={color as string} />
                     ),
                 }}
             />

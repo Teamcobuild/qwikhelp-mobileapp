@@ -62,11 +62,14 @@ export default function EditProfileScreen() {
             const newAvatarUrl = pickedUri ? await uploadAvatar(pickedUri) : undefined;
             const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-            const { error } = await supabase
+            const { data: updated, error } = await supabase
                 .from("profiles")
                 .update({ full_name: fullName, ...(newAvatarUrl && { avatar_url: newAvatarUrl }) })
-                .eq("id", user.id);
+                .eq("id", user.id)
+                .select("id");
             if (error) throw error;
+            // No row means the update silently did nothing (profile never created, or blocked by RLS).
+            if (!updated?.length) throw new Error("Your profile isn't set up yet. Please restart the app and try again.");
 
             await user.update({ firstName: firstName.trim(), lastName: lastName.trim() });
             await reloadAvatar();

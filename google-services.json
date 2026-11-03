@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "848710082379",
+    "project_id": "qwikhelp",
+    "storage_bucket": "qwikhelp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:848710082379:android:2d2dee75a84fbc67b492ce",
+        "android_client_info": {
+          "package_name": "com.qwikhelp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAsgFfOcbIU5WX-JeaTRfivZ9ArM0p8Cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

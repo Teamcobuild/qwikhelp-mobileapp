@@ -1,3 +1,4 @@
+import { EmptyJobsArt, EmptyNotificationsArt, EmptyState } from '@/components/illustrations/EmptyStates';
 import { useAvatar } from '@/context/AvatarContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
@@ -426,16 +427,16 @@ export default function Dashboard() {
         {/* Bookings / Jobs Feed */}
         <View className="pb-10">
           {filteredJobs.length === 0 ? (
-            <View className="bg-white rounded-[22px] p-8 items-center justify-center my-4">
-              <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
-              <Text className="text-base font-bold text-gray-900 mt-3">
-                {selectedFilter === 'New Requests' || selectedFilter === 'All' ? 'No requests yet' : 'No bookings found'}
-              </Text>
-              <Text className="text-xs text-gray-500 text-center mt-1">
-                {online
-                  ? `Nothing under "${selectedFilter}" right now. New job requests near you will appear here.`
-                  : 'You are offline. Set yourself Active to receive job requests near you.'}
-              </Text>
+            <View className="bg-white rounded-[22px] py-6 my-4">
+              <EmptyState
+                art={online ? <EmptyJobsArt width={180} /> : <EmptyNotificationsArt width={180} />}
+                title={selectedFilter === 'New Requests' || selectedFilter === 'All' ? 'No requests yet' : 'No bookings found'}
+                message={
+                  online
+                    ? `Nothing under "${selectedFilter}" right now. New job requests near you will appear here.`
+                    : 'You are offline. Set yourself Active to receive job requests near you.'
+                }
+              />
             </View>
           ) : (
             filteredJobs.map((job) => {

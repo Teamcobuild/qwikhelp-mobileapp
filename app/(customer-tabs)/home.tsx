@@ -64,7 +64,7 @@ export default function HomeScreen() {
                     <ServiceCard
                         title="Cooking"
                         description="Quick access to a cook to cater for your feeding."
-                        iconName="restaurant"
+                        slug="cooking"
                         color="bg-orange-100"
                         onPress={() => router.push("/booking/cooking")}
                     />
@@ -72,7 +72,7 @@ export default function HomeScreen() {
                     <ServiceCard
                         title="Cleaning"
                         description="Quick access to cleaning agents in your desired location."
-                        iconName="water"
+                        slug="cleaning"
                         color="bg-blue-100"
                         onPress={() => router.push("/booking/cleaning")}
                     />
@@ -80,7 +80,7 @@ export default function HomeScreen() {
                     <ServiceCard
                         title="Laundry"
                         description="Quick access to personnel for your laundry maintenance."
-                        iconName="shirt"
+                        slug="laundry"
                         color="bg-purple-100"
                         onPress={() => router.push("/booking/laundry")}
                     />
@@ -88,7 +88,7 @@ export default function HomeScreen() {
                     <ServiceCard
                         title="Companion"
                         description="Quick access to a companion in your time of loneliness."
-                        iconName="people"
+                        slug="companion"
                         color="bg-pink-100"
                         onPress={() => router.push("/booking/companion")}
                     />
@@ -96,28 +96,28 @@ export default function HomeScreen() {
                     <ServiceCard
                         title="Tour Guide"
                         description="Quick access to a tour guide to help you navigate."
-                        iconName="map"
+                        slug="tour-guide"
                         color="bg-green-100"
                         onPress={() => router.push("/booking/tour-guide")}
                     />
                     <ServiceCard
                         title="Plumber"
                         description="Quick access to a plumber to help you fix pipe and drainage problems asap."
-                        iconName="build"
+                        slug="plumber"
                         color="bg-yellow-100"
                         onPress={() => router.push("/booking/plumber")}
                     />
                     <ServiceCard
                         title="Electrician"
                         description="Quick access to an electrician to help you fix wiring problems asap."
-                        iconName="bulb"
+                        slug="electrician"
                         color="bg-gray-100"
                         onPress={() => router.push("/booking/electrician")}
                     />
                     <ServiceCard
                         title="Gardeners"
                         description="Quick access to a gardener to help you maintain your environment."
-                        iconName="leaf"
+                        slug="gardeners"
                         color="bg-blue-100"
                         onPress={() => router.push("/booking/gardeners")}
                     />

@@ -1,7 +1,8 @@
 import { ClerkLoaded, ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokenCache } from '../lib/tokenCache';
 import { NotificationProvider } from '../context/NotificationContext';
@@ -12,6 +13,7 @@ import { LocationModal } from '../components/modals/LocationModal';
 import { CustomAlert } from '../components/modals/CustomAlert';
 import { ProviderStatus } from '../types/provider';
 import { useSupabase } from '../lib/supabase';
+import { AnimatedSplash } from '../components/AnimatedSplash';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -153,6 +155,7 @@ export default function RootLayout() {
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
     "Satoshi-Bold": require("../assets/fonts/Satoshi-Bold.otf"),
   });
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (error) throw error;
@@ -162,7 +165,9 @@ export default function RootLayout() {
   if (!publishableKey) throw new Error('Missing Publishable Key');
   if (!fontsLoaded) return null;
 
+  // The animated splash sits above the app so routing and Clerk can load underneath it.
   return (
+    <View style={{ flex: 1 }}>
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SafeAreaProvider>
@@ -180,5 +185,7 @@ export default function RootLayout() {
         </SafeAreaProvider>
       </ClerkLoaded>
     </ClerkProvider>
+    {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+    </View>
   );
 }

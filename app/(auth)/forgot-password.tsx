@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { alertService } from "../../lib/AlertService";
+import { clerkErrorMessage } from "../../lib/clerkError";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -21,15 +22,41 @@ export default function ForgotPassword() {
     // 1. Send the OTP
     const onSendCode = async () => {
         if (!isLoaded) return;
+        if (!email.trim()) return alertService.alert("Error", "Enter your email");
         setLoading(true);
         try {
             await signIn.create({
                 strategy: "reset_password_email_code",
-                identifier: email,
+                identifier: email.trim(),
             });
             setStep("code"); // Move to OTP input
         } catch (err: any) {
-            alertService.alert("Error", err.errors[0]?.message);
+            alertService.alert("Error", clerkErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 2. Check the code with Clerk before asking for a new password
+    const onVerifyCode = async () => {
+        if (!isLoaded) return;
+        if (!code.trim()) {
+            alertService.alert("Error", "Enter the code we sent you");
+            return;
+        }
+        setLoading(true);
+        try {
+            const result = await signIn.attemptFirstFactor({
+                strategy: "reset_password_email_code",
+                code: code.trim(),
+            });
+            if (result.status === "needs_new_password") {
+                setStep("password");
+            } else {
+                alertService.alert("Error", "Something Went Wrong!");
+            }
+        } catch (err: any) {
+            alertService.alert("Failed", clerkErrorMessage(err, "Invalid Code"));
         } finally {
             setLoading(false);
         }
@@ -47,18 +74,14 @@ export default function ForgotPassword() {
         return true;
     }
 
-    // 2. Submit everything (Code + New Password)
+    // 3. Set the new password (the code was already verified in step 2)
     const onResetPassword = async () => {
         // FIX 1: Added () to validateForm so the gatekeeper actually runs
         if (!isLoaded || !validateForm()) return;
 
         setLoading(true);
         try {
-            const result = await signIn.attemptFirstFactor({
-                strategy: "reset_password_email_code",
-                code, // using the code collected in Step 2
-                password, // using the password collected in Step 3
-            });
+            const result = await signIn.resetPassword({ password });
 
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
@@ -67,10 +90,12 @@ export default function ForgotPassword() {
                 // FIX 2: Route to root so _layout.tsx sorts Customer vs Provider
                 router.replace("/");
             } else {
-                alertService.alert("Error", "Something Went Wrong!");
+                // e.g. the account has 2FA: the password is changed, the user just logs in with it.
+                alertService.alert("Password changed", "Your password was updated. Please log in with your new password.");
+                router.replace("/(auth)/sign-in");
             }
         } catch (err: any) {
-            alertService.alert("Failed", err.errors[0]?.message || "Invalid Code");
+            alertService.alert("Failed", clerkErrorMessage(err, "Could not reset password"));
         } finally {
             setLoading(false);
         }
@@ -87,7 +112,7 @@ export default function ForgotPassword() {
             {step === "email" && (
                 <View className="flex flex-col">
                     <Typography variant="h2" className="text-center font-bold mb-4">Forgot Password</Typography>
-                    <Input placeholder="input your email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+                    <Input placeholder="input your email" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" />
                     <Button title="Send Code" onPress={onSendCode} loading={loading} className="bg-blue-600" />
                 </View>
             )}
@@ -106,7 +131,7 @@ export default function ForgotPassword() {
                             placeholder="Input Code"
                         />
                     </View>
-                    <Button title="Next" onPress={() => setStep("password")} className="bg-blue-600" />
+                    <Button title="Next" onPress={onVerifyCode} loading={loading} className="bg-blue-600" />
                 </>
             )}
 
@@ -118,8 +143,6 @@ export default function ForgotPassword() {
 
                     <Button title="Confirm Reset" onPress={onResetPassword} loading={loading} className="bg-blue-600 mt-4" />
 
-                    {/* Helpful 'Back' button if they messed up the code */}
-                    <Button title="Back to Code" variant="outline" onPress={() => setStep("code")} className="mt-2" />
                 </>
             )}
         </View>

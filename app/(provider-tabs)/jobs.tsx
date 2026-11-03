@@ -1,3 +1,4 @@
+import { EmptyJobsArt, EmptyState } from '@/components/illustrations/EmptyStates';
 import { serviceName } from '@/constants/services';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { alertService } from '@/lib/AlertService';
@@ -195,12 +196,12 @@ export default function Jobs() {
         <View className="pb-10">
           {loading && <ActivityIndicator color="#2563EB" className="mt-10" />}
           {!loading && filtered.length === 0 && (
-            <View className="bg-white rounded-[22px] p-8 items-center justify-center my-4">
-              <Ionicons name="briefcase-outline" size={36} color="#9CA3AF" />
-              <Text className="text-base font-bold text-gray-900 mt-3">No jobs yet</Text>
-              <Text className="text-xs text-gray-500 text-center mt-1">
-                Jobs appear here once a customer books you or you send a quote.
-              </Text>
+            <View className="bg-white rounded-[22px] py-6 my-4">
+              <EmptyState
+                art={<EmptyJobsArt width={180} />}
+                title="No jobs yet"
+                message="Jobs appear here once a customer books you or you send a quote."
+              />
             </View>
           )}
           {filtered.map((job) => {

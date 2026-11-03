@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNotifications } from "../context/NotificationContext";
+import { EmptyNotificationsArt, EmptyState } from "../components/illustrations/EmptyStates";
 
 const CATEGORIES = ["All", "Unread messages", "Read messages"];
 
@@ -93,13 +94,12 @@ export default function NotificationsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {filteredNotifications.length === 0 && (
-                    <View className="items-center mt-16 px-8">
-                        <Ionicons name="notifications-off-outline" size={40} color="#9CA3AF" />
-                        <Text className="text-base font-bold text-gray-900 mt-3">No notifications</Text>
-                        <Text className="text-sm text-gray-500 text-center mt-1">
-                            Updates about your jobs, offers and bookings will show up here.
-                        </Text>
-                    </View>
+                    <EmptyState
+                        className="mt-12"
+                        art={<EmptyNotificationsArt />}
+                        title="All quiet for now"
+                        message="Updates about your jobs, offers and bookings will show up here."
+                    />
                 )}
                 {filteredNotifications.map((item) => {
                     const iconConfig = getNotificationIcon(item.type);

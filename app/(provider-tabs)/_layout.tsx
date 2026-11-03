@@ -2,6 +2,7 @@ import { ProfileTabIcon } from "@/components/ui/ProfileTabIcon";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function WalletTabIcon({ color, focused }: { color: string; focused: boolean }) {
     return (
@@ -32,6 +33,10 @@ function WalletTabIcon({ color, focused }: { color: string; focused: boolean }) 
 }
 
 export default function ProviderTabLayout() {
+    // Edge-to-edge Android draws under the system nav bar, so lift the tabs above it (and the iOS home indicator).
+    const insets = useSafeAreaInsets();
+    const bottomPadding = Math.max(insets.bottom, 10);
+
     return (
         <Tabs
             screenOptions={{
@@ -41,8 +46,8 @@ export default function ProviderTabLayout() {
                     borderTopWidth: 0,
                     elevation: 0,
                     shadowOpacity: 0,
-                    height: Platform.OS === "ios" ? 88 : 68,
-                    paddingBottom: Platform.OS === "ios" ? 28 : 10,
+                    height: 58 + bottomPadding,
+                    paddingBottom: bottomPadding,
                     paddingTop: 8,
                 },
                 tabBarActiveTintColor: "#2563EB",

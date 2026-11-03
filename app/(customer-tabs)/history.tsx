@@ -8,6 +8,7 @@ import { serviceName } from "../../constants/services";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { BookingItem, formatJobDate, formatJobTime, JobSummary } from "../../lib/broadcast";
 import { openChat } from "../../lib/chat";
+import { EmptyBookingsArt, EmptyState } from "../../components/illustrations/EmptyStates";
 import { useSupabase } from "../../lib/supabase";
 
 const CATEGORIES = ["All", "Upcoming", "Completed", "Pending", "Canceled"];
@@ -141,13 +142,7 @@ export default function HistoryScreen() {
                 <Text className="flex-1 text-xl font-bold text-center text-gray-900">
                     Booking History
                 </Text>
-                <TouchableOpacity
-                    onPress={() => router.push("/messages")}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    className="w-10 h-10 rounded-full bg-white items-center justify-center"
-                >
-                    <Ionicons name="chatbubbles-outline" size={20} color="#111827" />
-                </TouchableOpacity>
+                <View className="w-10" />
             </View>
 
             <View className="pl-6 mb-6">
@@ -180,20 +175,12 @@ export default function HistoryScreen() {
             {loading ? (
                 <ActivityIndicator color="#2563EB" className="mt-10" />
             ) : isEmpty ? (
-                <View className="flex-1 items-center justify-center px-6 pb-20">
-                    <Ionicons
-                        name="search-outline"
-                        size={80}
-                        color="#3B82F6"
-                        className="opacity-50"
+                <View className="flex-1 justify-center pb-20">
+                    <EmptyState
+                        art={<EmptyBookingsArt />}
+                        title={selectedCategory === "All" ? "No bookings yet" : `No ${selectedCategory.toLowerCase()} bookings`}
+                        message="Book a service from Home and it will show up here."
                     />
-                    <View className="flex-row mt-4 mb-2">
-                        <Ionicons name="people" size={40} color="#1E3A8A" className="mr-2" />
-                        <Ionicons name="document-text" size={40} color="#93C5FD" />
-                    </View>
-                    <Text className="text-[#374151] text-base font-medium mt-4">
-                        Your booking history is empty!
-                    </Text>
                 </View>
             ) : (
                 <ScrollView
