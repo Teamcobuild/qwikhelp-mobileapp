@@ -1,14 +1,15 @@
 import { clearPushToken } from "@/lib/push";
 import { useSupabase } from "@/lib/supabase";
 import { ASSISTANT_ENABLED } from "@/constants/features";
+import { SUPPORT_EMAIL } from "@/constants/legal";
 import { useAvatar } from "@/context/AvatarContext";
 import { alertService } from "@/lib/AlertService";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import React from "react";
-import { Image, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Image, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
@@ -17,6 +18,45 @@ export default function SettingsScreen() {
     const { signOut } = useAuth();
     const supabase = useSupabase();
     const { avatarUrl } = useAvatar();
+
+    const [deleting, setDeleting] = useState(false);
+
+    const emailSupport = () =>
+        Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("QwikHelp support")}`).catch(() =>
+            alertService.alert("Email us", `Send us an email at ${SUPPORT_EMAIL}`)
+        );
+
+    const deleteAccount = async () => {
+        setDeleting(true);
+        try {
+            const { error } = await supabase.functions.invoke("account", { body: { action: "delete" } });
+            if (error) {
+                let message = error.message;
+                try {
+                    const res = await (error as any).context?.json?.();
+                    if (res?.error) message = res.error;
+                } catch {}
+                throw new Error(message);
+            }
+            await signOut();
+            router.replace("/role-select");
+        } catch (err: any) {
+            alertService.alert("Couldn't delete account", err.message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleDeleteAccount = () => {
+        alertService.alert(
+            "Delete your account?",
+            "This permanently deletes your profile, photos, verification documents and messages, and signs you out. Payment records are kept as the law requires. This can't be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete account", style: "destructive", onPress: deleteAccount },
+            ]
+        );
+    };
 
     const handleLogout = () => {
         alertService.alert("Logout", "Are you sure you want to logout?", [
@@ -73,10 +113,15 @@ export default function SettingsScreen() {
                 </Section>
 
                 <Section title="Help">
-                    <Row icon="chatbubble-ellipses-outline" label="Chat with support" onPress={() => router.push("/support")} />
+                    <Row icon="mail-outline" label={`Email support (${SUPPORT_EMAIL})`} onPress={emailSupport} />
                     {ASSISTANT_ENABLED && (
                         <Row icon="sparkles-outline" label="Ask QwikHelp AI" onPress={() => router.push("/assistant")} />
                     )}
+                </Section>
+
+                <Section title="Legal">
+                    <Row icon="document-text-outline" label="Terms of Service" onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "terms" } })} />
+                    <Row icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "privacy" } })} />
                 </Section>
 
                 <Section title="About">
@@ -87,9 +132,13 @@ export default function SettingsScreen() {
                     </View>
                 </Section>
 
-                <TouchableOpacity onPress={handleLogout} className="bg-white rounded-[20px] py-4 mb-10 flex-row items-center justify-center">
+                <TouchableOpacity onPress={handleLogout} className="bg-white rounded-[20px] py-4 mb-4 flex-row items-center justify-center">
                     <Ionicons name="log-out-outline" size={20} color="#DC2626" />
                     <Text className="text-red-600 font-bold text-sm ml-2">Log Out</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleDeleteAccount} disabled={deleting} className="py-3 mb-10 items-center">
+                    {deleting ? <ActivityIndicator color="#DC2626" /> : <Text className="text-red-500 font-semibold text-xs">Delete my account</Text>}
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>

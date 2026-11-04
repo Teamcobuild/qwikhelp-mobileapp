@@ -14,8 +14,19 @@ import { CustomAlert } from '../components/modals/CustomAlert';
 import { ProviderStatus } from '../types/provider';
 import { useSupabase } from '../lib/supabase';
 import { AnimatedSplash } from '../components/AnimatedSplash';
+import * as Sentry from '@sentry/react-native';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+
+// Crash reporting for release builds. Off in development and until EXPO_PUBLIC_SENTRY_DSN is set.
+Sentry.init({
+  dsn: sentryDsn,
+  enabled: !!sentryDsn && !__DEV__,
+  environment: __DEV__ ? 'development' : 'production',
+  sendDefaultPii: false, // no IP addresses or request bodies; we attach only the Clerk user id
+  tracesSampleRate: 0.2,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +40,12 @@ function InitialLayout() {
   // Every signed-in user needs a profiles row (role + display name) before using the backend.
   // Providers also get one from KycContext; this covers customers.
   const role = user?.unsafeMetadata?.role as 'customer' | 'provider' | undefined;
+
+  // Tag crash reports with the account (id + role only) so we can find the user's bookings.
+  useEffect(() => {
+    Sentry.setUser(user ? { id: user.id } : null);
+    Sentry.setTag('role', role ?? 'none');
+  }, [user?.id, role]);
   useEffect(() => {
     if (!isSignedIn || !user || role !== 'customer') return;
     supabase
@@ -64,6 +81,8 @@ function InitialLayout() {
     const inVerificationStatus = segments[0] === 'verification-status';
     // Account screens shared by both roles.
     const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant', 'messages', 'payment-complete'].includes(segments[0] as string);
+    // Terms and privacy are readable by everyone, signed in or not.
+    if (segments[0] === 'legal') return;
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select
@@ -146,11 +165,12 @@ function InitialLayout() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="location" />
       <Stack.Screen name="assistant" />
+      <Stack.Screen name="legal/[doc]" />
     </Stack>
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, error] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
     "Satoshi-Bold": require("../assets/fonts/Satoshi-Bold.otf"),
@@ -189,3 +209,6 @@ export default function RootLayout() {
     </View>
   );
 }
+
+// Catches render errors and reports them (no-op until Sentry is enabled).
+export default Sentry.wrap(RootLayout);

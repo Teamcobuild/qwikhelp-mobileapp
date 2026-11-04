@@ -237,16 +237,6 @@ export default function SignInScreen() {
 
             <Button title="Continue" onPress={() => onSignInPress()} loading={loading} className="bg-blue-600 w-full" />
 
-            {/* Social Login UI */}
-            <View className="items-center mt-8">
-                <Typography variant="caption" className="text-gray-400 mb-4">or sign up with</Typography>
-                <View className="flex-row gap-4">
-                    <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-facebook" size={24} color="#1877F2" /></View>
-                    <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-apple" size={24} color="black" /></View>
-                    <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-google" size={24} color="#DB4437" /></View>
-                </View>
-            </View>
-
             <View className="flex-row mt-8 justify-center">
                 <Typography variant="caption">Don't have an account? </Typography>
                 <Typography

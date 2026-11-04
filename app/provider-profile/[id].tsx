@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { tradeName } from '../../constants/kyc';
 import { SERVICES } from '../../constants/services';
 import { alertService } from '../../lib/AlertService';
@@ -123,7 +123,9 @@ export default function ProviderProfileScreen() {
             <Ionicons name="star" size={16} color="#f97316" />
             <Text className="text-orange-500 font-bold text-sm ml-1.5">
               {provider.review_count ? Number(provider.rating).toFixed(1) : 'New'}{' '}
-              <Text className="text-gray-400 font-normal">({provider.review_count} reviews • {provider.completed_jobs} jobs)</Text>
+              <Text className="text-gray-400 font-normal">
+                ({provider.review_count ? `${provider.review_count} reviews • ` : ''}{provider.completed_jobs} jobs done)
+              </Text>
             </Text>
           </View>
         </View>
@@ -200,22 +202,16 @@ export default function ProviderProfileScreen() {
             )}
           </View>
         ) : (
-          <View className="pb-12 pt-6">
-            <Text className="text-center font-bold text-gray-900 text-lg">Would you recommend them?</Text>
-            <View className="flex-row justify-center gap-3 mt-4">
+          <View className="pb-12 pt-8 items-center px-8">
+            <View className="flex-row gap-1.5 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name="star" size={32} color="#d1d5db" />
+                <Ionicons key={star} name="star" size={24} color="#E5E7EB" />
               ))}
             </View>
-            <View className="mx-4 mt-8 border border-gray-200 rounded-2xl bg-white p-4">
-              <TextInput
-                placeholder="Write your review..."
-                placeholderTextColor="#9ca3af"
-                multiline
-                className="h-28 text-gray-900 text-base"
-                textAlignVertical="top"
-              />
-            </View>
+            <Text className="text-center font-bold text-gray-900 text-base">Ratings & reviews are coming soon</Text>
+            <Text className="text-center text-gray-500 text-sm mt-1 leading-5">
+              Soon you&apos;ll be able to rate providers after a completed job. For now, check their verification, work photos and completed jobs.
+            </Text>
           </View>
         )}
       </KeyboardAwareScrollView>

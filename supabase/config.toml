@@ -423,6 +423,10 @@ verify_jwt = false
 # Clerk session tokens are verified inside the function.
 verify_jwt = false
 
+[functions.account]
+# The user's Clerk token is forwarded to Postgres, which verifies it.
+verify_jwt = false
+
 [functions.payments]
 # Paystack webhooks/callbacks carry no JWT; app calls forward the Clerk token to Postgres, which verifies it.
 verify_jwt = false

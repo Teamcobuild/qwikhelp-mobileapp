@@ -70,9 +70,9 @@ export default function AccountScreen() {
 
                 {/* Settings Cards */}
                 <SettingsCard
-                    iconNode={<Ionicons name="chatbubble" size={26} color="#10B981" />}
-                    title="Chat Support"
-                    description="You can chat with our customer support here"
+                    iconNode={<Ionicons name="mail" size={26} color="#10B981" />}
+                    title="Help & Support"
+                    description="Email our team about a booking or payment"
                     onPress={() => router.push("/support")}
                 />
                 <SettingsCard

@@ -147,14 +147,14 @@ export default function ProviderAccount() {
           <MenuItem
             icon="help-circle-outline"
             title="Help & Provider Support"
-            subtitle="Chat with the QwikHelp team"
+            subtitle="Email the QwikHelp team"
             onPress={() => router.push('/support')}
           />
           <MenuItem
             icon="shield-outline"
             title="Terms of Service & Safety"
-            subtitle="Provider code of conduct"
-            onPress={() => alertService.alert('Terms', 'QwikHelp verified provider terms.')}
+            subtitle="Rules, payments and payouts"
+            onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terms' } })}
           />
         </View>
 

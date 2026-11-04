@@ -107,7 +107,7 @@ export default function SignUpForm() {
         >
             <Typography variant="h1" className="text-center font-bold mb-2">Create Account</Typography>
             <Typography variant="body" className="text-center mb-8 text-gray-500">
-                Fill your information below or register with your social account
+                Fill in your details below to get started
             </Typography>
 
             <Input placeholder="First Name" value={form.firstName} onChangeText={setField("firstName")} autoComplete="given-name" textContentType="givenName" />
@@ -130,18 +130,21 @@ export default function SignUpForm() {
                 <View className={`w-5 h-5 border rounded mr-2 items-center justify-center ${agreed ? 'bg-blue-600 border-blue-600' : 'border-gray-400'}`}>
                     {agreed && <Ionicons name="checkmark" size={14} color="white" />}
                 </View>
-                <Typography variant="caption">I have agreed with the <Typography variant="caption" className="text-blue-600 underline">Terms & Condition</Typography></Typography>
+                <Typography variant="caption" className="flex-1">
+                    I agree to the{" "}
+                    <Typography variant="caption" className="text-blue-600 underline" onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "terms" } })}>Terms of Service</Typography>
+                    {" "}and{" "}
+                    <Typography variant="caption" className="text-blue-600 underline" onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "privacy" } })}>Privacy Policy</Typography>
+                </Typography>
             </TouchableOpacity>
 
             <Button title="Sign Up" onPress={onSignUpPress} loading={loading} className="bg-blue-600" />
 
-            {/* Social Login Placeholder */}
-            <View className="items-center mt-6 mb-10">
-                <Typography variant="body" className="text-gray-400 mb-4">Or sign up with</Typography>
-                <View className="flex-row gap-4">
-                    <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-google" size={20} /></View>
-                    <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"><Ionicons name="logo-apple" size={20} /></View>
-                </View>
+            <View className="flex-row justify-center mt-6 mb-10">
+                <Typography variant="caption">Already have an account? </Typography>
+                <Typography variant="caption" className="text-blue-600 font-bold" onPress={() => router.push("/(auth)/sign-in")}>
+                    Log in
+                </Typography>
             </View>
         </KeyboardAwareScrollView>
     );
