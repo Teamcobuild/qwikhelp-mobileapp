@@ -1,5 +1,6 @@
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { alertService } from "@/lib/AlertService";
+import { formatTime } from "@/lib/dates";
 import { useSupabase } from "@/lib/supabase";
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +17,6 @@ interface SupportMessage {
     created_at: string;
 }
 
-const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 export default function SupportScreen() {
     const router = useRouter();

@@ -39,7 +39,29 @@ interface DashboardProfile {
   review_count: number;
 }
 
-type JobCardStatus = 'New Request' | 'Pending Quote' | 'Final Offer' | 'Agreed' | 'Confirmed' | 'Upcoming' | 'Completed';
+type JobCardStatus =
+  | 'New Request'
+  | 'Pending Quote'
+  | 'Final Offer'
+  | 'Agreed'
+  | 'Awaiting Payment'
+  | 'Confirmed'
+  | 'Upcoming'
+  | 'In Progress'
+  | 'Awaiting Confirmation'
+  | 'Completed'
+  | 'Cancelled';
+
+const bookingCardStatus = (b: BookingItem): JobCardStatus => {
+  switch (b.status) {
+    case 'pending_payment': return 'Awaiting Payment';
+    case 'in_progress': return 'In Progress';
+    case 'awaiting_confirmation': return 'Awaiting Confirmation';
+    case 'completed': return 'Completed';
+    case 'cancelled': return 'Cancelled';
+    default: return isToday(b.scheduled_at) ? 'Confirmed' : 'Upcoming';
+  }
+};
 
 interface JobItem {
   id: string;
@@ -94,9 +116,9 @@ function bookingToJob(b: BookingItem): JobItem {
     offerId: b.offer_id,
     customerName: b.customer_name,
     avatarBg: avatarBgFor(b.customer_name),
-    status: b.status === 'completed' ? 'Completed' : isToday(b.scheduled_at) ? 'Confirmed' : 'Upcoming',
+    status: bookingCardStatus(b),
     category: done ? 'Past' : isToday(b.scheduled_at) ? 'Today' : 'Upcoming',
-    location: b.landmark,
+    location: b.address ?? b.landmark,
     description: b.description,
     price: formatNaira(b.agreed_amount),
     when: `${formatJobDate(b.scheduled_at)}, ${formatJobTime(b.scheduled_at)}`,
@@ -221,10 +243,10 @@ export default function Dashboard() {
     today: bookings.filter((b) => isToday(b.scheduled_at) && b.status !== 'cancelled').length,
     pendingQuotes: feed.filter((f) => f.offer).length,
     completed: bookings.filter((b) => b.status === 'completed').length,
-    // Becomes the wallet balance once Paystack payouts are wired up.
+    // Provider's share (after the 10% fee) of paid, completed jobs.
     balance: bookings
       .filter((b) => b.status === 'completed' && b.payment_status === 'paid')
-      .reduce((sum, b) => sum + b.agreed_amount, 0),
+      .reduce((sum, b) => sum + b.provider_earning, 0),
   }), [feed, bookings]);
 
   // Filter jobs
@@ -255,22 +277,26 @@ export default function Dashboard() {
         };
       case 'Agreed':
       case 'Confirmed':
+      case 'In Progress':
         return {
           bg: 'bg-[#DCFCE7]',
           text: 'text-[#16A34A]',
         };
       case 'Final Offer':
       case 'Pending Quote':
+      case 'Awaiting Payment':
         return {
           bg: 'bg-[#FEF3C7]',
           text: 'text-[#D97706]',
         };
       case 'Upcoming':
+      case 'Awaiting Confirmation':
         return {
           bg: 'bg-[#E0E7FF]',
           text: 'text-[#4F46E5]',
         };
       case 'Completed':
+      case 'Cancelled':
         return {
           bg: 'bg-[#F3F4F6]',
           text: 'text-[#4B5563]',
@@ -346,6 +372,19 @@ export default function Dashboard() {
           </Text>
           <Ionicons name="caret-down-sharp" size={10} color="#374151" />
         </TouchableOpacity>
+
+        {/* Offline: job requests only reach Active providers */}
+        {!loading && !online && (
+          <View className="flex-row items-center bg-amber-50 rounded-2xl p-3 mt-4">
+            <Ionicons name="moon" size={18} color="#D97706" />
+            <Text className="flex-1 text-xs text-amber-900 mx-2 leading-4">
+              You&apos;re offline, so customers near you can&apos;t send you job requests.
+            </Text>
+            <TouchableOpacity onPress={() => handleUpdateStatus(true)} className="bg-emerald-600 rounded-xl px-3 py-2">
+              <Text className="text-white text-xs font-bold">Go Active</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* 2x2 Metric Cards Grid */}
         <View className="flex-row flex-wrap justify-between mt-4">

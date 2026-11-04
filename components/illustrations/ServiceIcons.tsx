@@ -169,7 +169,8 @@ export function ElectricalIcon({ size = 48 }: IconProps) {
         <Line x1={8} y1={12} x2={4} y2={9} stroke="#FACC15" strokeWidth={2.5} strokeLinecap="round" />
         <Line x1={56} y1={12} x2={60} y2={9} stroke="#FACC15" strokeWidth={2.5} strokeLinecap="round" />
         <Line x1={6} y1={28} x2={2} y2={28} stroke="#FACC15" strokeWidth={2.5} strokeLinecap="round" />
-        <Line x1={58} y1={28} x2={62} y2={28} stroke="#FACC15" strokeWidth={2.5} strokeLinecap="round" />      </Layer>
+        <Line x1={58} y1={28} x2={62} y2={28} stroke="#FACC15" strokeWidth={2.5} strokeLinecap="round" />
+      </Layer>
       <Layer>
         <Path d="M32 7 a15 15 0 0 0 -9 27 c2 2 3 4 3 7 h12 c0 -3 1 -5 3 -7 a15 15 0 0 0 -9 -27 z" fill="#FDE047" stroke="#EAB308" strokeWidth={1.5} />
         <Path d="M27 32 l3 -8 l2 4 l2 -4 l3 8" stroke="#CA8A04" strokeWidth={1.8} fill="none" strokeLinejoin="round" strokeLinecap="round" />

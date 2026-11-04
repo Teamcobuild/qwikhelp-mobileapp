@@ -440,7 +440,7 @@ export default function ChatScreen() {
         {/* Safety note */}
         <View className="flex-row items-center bg-blue-50 px-4 py-2">
           <Ionicons name="shield-checkmark" size={14} color="#2563EB" />
-          <Text className="text-[11px] text-blue-800 ml-2 flex-1">
+          <Text className="text-[10px] text-blue-800 ml-2 flex-1">
             Keep chats, calls and payments on QwikHelp. Payments made outside the app aren&apos;t protected.
           </Text>
         </View>

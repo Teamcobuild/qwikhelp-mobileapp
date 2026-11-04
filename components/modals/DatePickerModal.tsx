@@ -1,118 +1,100 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  CalendarDay,
+  compareDays,
+  daysInMonth,
+  formatDay,
+  MONTH_NAMES,
+  sameDay,
+  todayWat,
+  weekdayOf,
+  WEEKDAY_SHORT,
+  withMonth,
+} from '../../lib/dates';
 
 interface DatePickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (date: Date) => void;
-  initialDate?: Date;
-  allowPastDates?: boolean;
-  maxDate?: Date;
-  minDate?: Date;
+  onConfirm: (day: CalendarDay) => void;
+  initialDate?: CalendarDay;
+  minDate?: CalendarDay; // inclusive; defaults to today
+  maxDate?: CalendarDay; // inclusive
   title?: string;
 }
 
-export const DatePickerModal = ({
-  visible,
+// Works in calendar days (Nigerian time), never in Date objects, so no timezone can shift the result.
+// The picker body mounts on open, so it always starts from the current props.
+export const DatePickerModal = (props: DatePickerModalProps) => (
+  <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
+    {props.visible && <DatePicker {...props} />}
+  </Modal>
+);
+
+const DatePicker = ({
   onClose,
   onConfirm,
   initialDate,
-  allowPastDates = false,
-  maxDate,
   minDate,
+  maxDate,
   title = 'Select Date',
 }: DatePickerModalProps) => {
-  const [selectedDate, setSelectedDate] = useState<Date>(initialDate || new Date());
-  const [currentMonth, setCurrentMonth] = useState<Date>(initialDate || new Date());
-  const [showYearPicker, setShowYearPicker] = useState<boolean>(false);
+  const today = todayWat();
+  const min = minDate ?? today;
 
-  useEffect(() => {
-    if (visible) {
-      const init = initialDate || new Date();
-      setSelectedDate(init);
-      setCurrentMonth(init);
-      setShowYearPicker(false);
-    }
-  }, [visible, initialDate]);
+  const isDisabled = (d: CalendarDay) => compareDays(d, min) < 0 || (!!maxDate && compareDays(d, maxDate) > 0);
 
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(year, month - 1, 1));
+  // Start on the initial date if it's still allowed, otherwise the nearest allowed day.
+  const startDay = () => {
+    const d = initialDate ?? today;
+    if (compareDays(d, min) < 0) return min;
+    if (maxDate && compareDays(d, maxDate) > 0) return maxDate;
+    return d;
   };
 
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(year, month + 1, 1));
+  const [selected, setSelected] = useState<CalendarDay>(startDay);
+  const [view, setView] = useState({ year: selected.year, month: selected.month });
+  const [showYearPicker, setShowYearPicker] = useState(false);
+
+  const monthIndex = (y: number, m: number) => y * 12 + (m - 1);
+  const canPrev = monthIndex(view.year, view.month) > monthIndex(min.year, min.month);
+  const canNext = !maxDate || monthIndex(view.year, view.month) < monthIndex(maxDate.year, maxDate.month);
+
+  const shiftMonth = (delta: number) => {
+    const idx = monthIndex(view.year, view.month) + delta;
+    setView({ year: Math.floor(idx / 12), month: (idx % 12) + 1 });
   };
 
-  const handleDateSelect = (day: number) => {
-    const newDate = new Date(year, month, day);
-    setSelectedDate(newDate);
+  // Picking a year moves the selection too (same day/month, clamped to the allowed range).
+  const pickYear = (year: number) => {
+    let d = withMonth(selected, year, selected.month);
+    if (compareDays(d, min) < 0) d = min;
+    if (maxDate && compareDays(d, maxDate) > 0) d = maxDate;
+    setSelected(d);
+    setView({ year: d.year, month: d.month });
+    setShowYearPicker(false);
   };
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
 
   const renderYears = () => {
-    const currentYear = new Date().getFullYear();
-    const startYear = minDate ? minDate.getFullYear() : 1940;
-    const endYear = maxDate ? maxDate.getFullYear() : currentYear + 5;
-    const years = [];
-    for (let y = endYear; y >= startYear; y--) {
-      years.push(y);
-    }
+    const startYear = minDate ? minDate.year : today.year;
+    const endYear = maxDate ? maxDate.year : today.year + 5;
+    const years: number[] = [];
+    for (let y = endYear; y >= startYear; y--) years.push(y);
 
     return (
       <View className="w-full mb-4">
-        <Text className="text-xs font-semibold text-gray-500 mb-2 text-center">
-          Tap to select year
-        </Text>
-        <ScrollView
-          style={{ maxHeight: 230 }}
-          showsVerticalScrollIndicator={true}
-          className="w-full"
-        >
+        <ScrollView style={{ maxHeight: 230 }} className="w-full">
           <View className="flex-row flex-wrap justify-between pr-1">
             {years.map((y) => {
-              const isSelected = y === year;
+              const isSelected = y === selected.year;
               return (
                 <TouchableOpacity
                   key={y}
-                  onPress={() => {
-                    setCurrentMonth(new Date(y, month, 1));
-                    setShowYearPicker(false);
-                  }}
-                  className={`w-[23%] py-2.5 rounded-xl items-center justify-center mb-2 ${
-                    isSelected ? 'bg-blue-600' : 'bg-gray-100'
-                  }`}
+                  onPress={() => pickYear(y)}
+                  className={`w-[23%] py-2.5 rounded-xl items-center justify-center mb-2 ${isSelected ? 'bg-blue-600' : 'bg-gray-100'}`}
                 >
-                  <Text
-                    className={`text-sm font-semibold ${
-                      isSelected ? 'text-white font-bold' : 'text-gray-800'
-                    }`}
-                  >
-                    {y}
-                  </Text>
+                  <Text className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{y}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -123,136 +105,100 @@ export const DatePickerModal = ({
   };
 
   const renderDays = () => {
-    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    // Weekday headers
-    const headers = weekDays.map((day, idx) => (
-      <View key={`header-${idx}`} className="w-[14%] items-center mb-2">
-        <Text className="text-gray-400 text-xs font-bold">{day}</Text>
-      </View>
-    ));
-
-    const grid = [];
-    // Empty slots before first day
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      grid.push(
-        <View
-          key={`empty-${i}`}
-          className="w-[14%] aspect-square items-center justify-center m-0.5"
-        />
-      );
-    }
-
-    // Days
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dateOfCell = new Date(year, month, i);
-      dateOfCell.setHours(0, 0, 0, 0);
-
-      const isBeforeMin = minDate ? dateOfCell.getTime() < minDate.getTime() : false;
-      const isAfterMax = maxDate ? dateOfCell.getTime() > maxDate.getTime() : false;
-      const isPastDisabled = !allowPastDates && dateOfCell.getTime() < today.getTime();
-      const isDisabled = isBeforeMin || isAfterMax || isPastDisabled;
-
-      const isSelected =
-        selectedDate.getDate() === i &&
-        selectedDate.getMonth() === month &&
-        selectedDate.getFullYear() === year;
-      const isToday =
-        i === today.getDate() &&
-        month === today.getMonth() &&
-        year === today.getFullYear();
-
-      grid.push(
-        <TouchableOpacity
-          key={`day-${i}`}
-          onPress={() => !isDisabled && handleDateSelect(i)}
-          disabled={isDisabled}
-          className={`w-[13%] aspect-square items-center justify-center rounded-full m-[0.5%] ${
-            isSelected
-              ? 'bg-blue-600'
-              : isToday && !isDisabled
-              ? 'bg-blue-50 border border-blue-200'
-              : ''
-          }`}
-        >
-          <Text
-            className={`text-sm ${
-              isDisabled
-                ? 'text-gray-300'
-                : isSelected
-                ? 'text-white font-bold'
-                : isToday
-                ? 'text-blue-600 font-bold'
-                : 'text-gray-800 font-medium'
-            }`}
-          >
-            {i}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
+    const first = weekdayOf({ year: view.year, month: view.month, day: 1 });
+    const count = daysInMonth(view.year, view.month);
+    const cells: (number | null)[] = [...Array(first).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)];
+    while (cells.length % 7) cells.push(null);
 
     return (
-      <View className="w-full mb-6">
-        <View className="flex-row w-full justify-between">{headers}</View>
-        <View className="flex-row flex-wrap w-full justify-start">{grid}</View>
+      <View className="w-full mb-4">
+        <View className="flex-row w-full mb-2">
+          {WEEKDAY_SHORT.map((d) => (
+            <Text key={d} className="flex-1 text-center text-gray-400 text-xs font-bold">{d}</Text>
+          ))}
+        </View>
+        {Array.from({ length: cells.length / 7 }, (_, row) => (
+          <View key={row} className="flex-row w-full">
+            {cells.slice(row * 7, row * 7 + 7).map((n, i) => {
+              if (!n) return <View key={i} className="flex-1 aspect-square" />;
+              const d = { year: view.year, month: view.month, day: n };
+              const disabled = isDisabled(d);
+              const isSelected = sameDay(d, selected);
+              const isToday = sameDay(d, today);
+              return (
+                <TouchableOpacity
+                  key={i}
+                  disabled={disabled}
+                  onPress={() => setSelected(d)}
+                  className="flex-1 aspect-square items-center justify-center"
+                >
+                  <View
+                    className={`w-10 h-10 rounded-full items-center justify-center ${
+                      isSelected ? 'bg-blue-600' : isToday && !disabled ? 'bg-blue-50 border border-blue-200' : ''
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        disabled ? 'text-gray-300' : isSelected ? 'text-white font-bold' : isToday ? 'text-blue-600 font-bold' : 'text-gray-800 font-medium'
+                      }`}
+                    >
+                      {n}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
       </View>
     );
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Modal Header */}
           <View className="flex-row justify-between items-center w-full mb-4">
-            <Text className="font-bold text-lg flex-1 text-center ml-6 text-gray-900">
-              {title}
-            </Text>
+            <Text className="font-bold text-lg flex-1 text-center ml-6 text-gray-900">{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
-          {/* Month & Year Navigation */}
           <View className="flex-row justify-between items-center w-full px-1 mb-4">
-            <TouchableOpacity onPress={handlePrevMonth} className="p-2 rounded-lg bg-gray-50">
-              <Ionicons name="chevron-back" size={20} color="#374151" />
+            <TouchableOpacity onPress={() => shiftMonth(-1)} disabled={!canPrev || showYearPicker} className="p-2 rounded-lg bg-gray-50">
+              <Ionicons name="chevron-back" size={20} color={canPrev && !showYearPicker ? '#374151' : '#D1D5DB'} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setShowYearPicker(!showYearPicker)}
+              onPress={() => setShowYearPicker((v) => !v)}
               activeOpacity={0.7}
               className="flex-row items-center gap-1.5 py-1.5 px-3 bg-gray-100 rounded-xl"
             >
               <Text className="text-base font-bold text-gray-900">
-                {monthNames[month]} {year}
+                {MONTH_NAMES[view.month - 1]} {view.year}
               </Text>
-              <Ionicons
-                name={showYearPicker ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color="#4B5563"
-              />
+              <Ionicons name={showYearPicker ? 'chevron-up' : 'chevron-down'} size={16} color="#4B5563" />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleNextMonth} className="p-2 rounded-lg bg-gray-50">
-              <Ionicons name="chevron-forward" size={20} color="#374151" />
+            <TouchableOpacity onPress={() => shiftMonth(1)} disabled={!canNext || showYearPicker} className="p-2 rounded-lg bg-gray-50">
+              <Ionicons name="chevron-forward" size={20} color={canNext && !showYearPicker ? '#374151' : '#D1D5DB'} />
             </TouchableOpacity>
           </View>
 
-          {/* Content: Days Grid or Year Selector */}
           {showYearPicker ? renderYears() : renderDays()}
 
-          {/* Confirm Button */}
+          {/* Exactly what will be saved */}
+          <Text className="text-sm text-gray-600 mb-4">{formatDay(selected)}</Text>
+
           <TouchableOpacity
-            onPress={() => onConfirm(selectedDate)}
-            className="w-full bg-blue-600 py-3.5 rounded-xl items-center shadow-sm"
+            onPress={() => onConfirm(selected)}
+            disabled={isDisabled(selected)}
+            className="w-full bg-blue-600 py-3.5 rounded-xl items-center"
           >
             <Text className="text-white font-bold text-base">Confirm</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
   );
 };
 

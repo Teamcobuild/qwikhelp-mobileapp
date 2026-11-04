@@ -121,6 +121,13 @@ export default function HomeScreen() {
                         color="bg-blue-100"
                         onPress={() => router.push("/booking/gardeners")}
                     />
+                    <ServiceCard
+                        title="Carpentry"
+                        description="Quick access to a carpenter for furniture, doors and windows."
+                        slug="carpentry"
+                        color="bg-amber-100"
+                        onPress={() => router.push("/booking/carpentry")}
+                    />
                 </View>
 
             </ScrollView>

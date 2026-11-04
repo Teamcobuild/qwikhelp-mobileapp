@@ -52,11 +52,11 @@ export default function OffersScreen() {
   const handleBook = (offer: Offer) => {
     alertService.alert(
       `Book ${offer.provider.name.split(' ')[0]}?`,
-      `${formatNaira(offer.amount)} workmanship fee. All other offers will be closed.`,
+      `${formatNaira(offer.amount)} workmanship fee. Next you'll pay into escrow; we hold it until you confirm the job is done.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Book',
+          text: 'Continue',
           onPress: async () => {
             setBookingOfferId(offer.id);
             try {
@@ -67,7 +67,10 @@ export default function OffersScreen() {
                   'Provider Unavailable',
                   'This provider just got booked for an overlapping job. Please choose another offer.'
                 );
+                await load();
+                return;
               }
+              router.push({ pathname: '/booking/pay/[bookingId]', params: { bookingId: result.booking_id } });
               await load();
             } catch (err) {
               alertService.alert('Booking Failed', errorMessage(err));
@@ -174,9 +177,28 @@ export default function OffersScreen() {
           </View>
         </View>
 
-        {/* Booked */}
-        {selected && (
-          <View className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6">
+        {/* Picked but not paid yet: other offers stay open until payment succeeds */}
+        {selected && isOpen && data.booking_id && (
+          <View className="bg-amber-50 rounded-2xl p-4 mb-6">
+            <View className="flex-row items-center mb-1">
+              <Ionicons name="timer-outline" size={20} color="#D97706" />
+              <Text className="text-amber-900 font-bold text-base ml-2">Complete your payment</Text>
+            </View>
+            <Text className="text-amber-900 text-sm leading-5">
+              {selected.provider.name}&apos;s slot is held for you at {formatNaira(selected.amount)}. Pay into escrow to confirm the booking.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: '/booking/pay/[bookingId]', params: { bookingId: data.booking_id! } })}
+              className="bg-blue-600 py-3 rounded-xl items-center mt-4"
+            >
+              <Text className="text-white font-bold">Pay now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Booked (paid) */}
+        {selected && !isOpen && (
+          <View className="bg-green-50 rounded-2xl p-4 mb-6">
             <View className="flex-row items-center mb-1">
               <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
               <Text className="text-green-800 font-bold text-base ml-2">Booking confirmed</Text>
@@ -228,7 +250,7 @@ export default function OffersScreen() {
               budget={job.budget}
               onBook={handleBook}
               booking={bookingOfferId === offer.id}
-              disabled={!isOpen || (!!bookingOfferId && bookingOfferId !== offer.id)}
+              disabled={!isOpen || !!selected || (!!bookingOfferId && bookingOfferId !== offer.id)}
             />
           ))}
           {closedOffers.length > 0 && (

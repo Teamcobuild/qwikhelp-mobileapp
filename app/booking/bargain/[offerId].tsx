@@ -305,7 +305,7 @@ function statusHint(offer: OfferDetail, firstName: string) {
     case 'awaiting_customer': return 'This counter offer has expired.';
     case 'awaiting_provider': return `Waiting for ${firstName} to accept or walk away.`;
     case 'agreed': return 'Price agreed. Book now or compare other offers.';
-    case 'selected': return `${firstName} is booked for this job.`;
+    case 'selected': return `You picked ${firstName}. Pay into escrow from your bookings to confirm.`;
     case 'walked_away': return `${firstName} walked away from this job.`;
     case 'declined': return `You declined ${firstName}'s offer.`;
     case 'expired': return 'This offer expired.';

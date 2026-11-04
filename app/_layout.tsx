@@ -63,7 +63,7 @@ function InitialLayout() {
     const inRequest = segments[0] === 'request';
     const inVerificationStatus = segments[0] === 'verification-status';
     // Account screens shared by both roles.
-    const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant', 'messages'].includes(segments[0] as string);
+    const inAccountScreen = ['edit-profile', 'support', 'settings', 'location', 'assistant', 'messages', 'payment-complete'].includes(segments[0] as string);
 
     if (!isSignedIn) {
       // not signed in — only allow auth screens and role-select

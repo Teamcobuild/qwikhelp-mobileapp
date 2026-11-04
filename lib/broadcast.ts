@@ -1,6 +1,7 @@
 // Client types + helpers for the job broadcast / negotiation backend
 // (supabase/migrations/20261028000600_broadcast_negotiation.sql).
 import { SupabaseClient } from '@supabase/supabase-js';
+import { formatShortDate, formatTime } from './dates';
 
 export type JobStatus = 'open' | 'booked' | 'expired' | 'cancelled';
 export type OfferStatus =
@@ -14,7 +15,17 @@ export type OfferStatus =
   | 'withdrawn'
   | 'not_selected'
   | 'job_closed';
-export type BookingStatus = 'confirmed' | 'en_route' | 'in_progress' | 'completed' | 'cancelled' | 'disputed';
+// pending_payment: picked, slot held while the customer pays. confirmed: paid (escrow funded).
+// in_progress: provider checked in. awaiting_confirmation: provider marked done (5h auto-release).
+export type BookingStatus =
+  | 'pending_payment'
+  | 'confirmed'
+  | 'en_route'
+  | 'in_progress'
+  | 'awaiting_confirmation'
+  | 'completed'
+  | 'cancelled'
+  | 'disputed';
 
 export interface ProviderCard {
   id: string;
@@ -98,7 +109,22 @@ export interface BookingItem {
   category: string;
   description: string;
   landmark: string;
-  payment_status: 'unpaid' | 'paid' | 'refunded';
+  payment_status: 'unpaid' | 'paid' | 'refund_pending' | 'refunded' | 'refund_failed';
+  payment_due_at: string | null;
+  funded_at: string | null;
+  arrived_at: string | null;
+  done_at: string | null;
+  auto_release_at: string | null;
+  completed_at: string | null;
+  released_by: 'customer' | 'auto' | null;
+  cancelled_by: 'customer' | 'provider' | null;
+  cancel_reason: string | null;
+  commission_amount: number;
+  provider_earning: number;
+  // Exact location: always for the customer, for the provider only once paid.
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
   role: 'customer' | 'provider';
   customer_name: string;
   provider: ProviderCard;
@@ -109,11 +135,10 @@ export const ACTIVE_OFFER_STATUSES: OfferStatus[] = ['awaiting_customer', 'await
 export const formatNaira = (amount: number | string | null | undefined) =>
   `₦${Number(amount ?? 0).toLocaleString('en-NG')}`;
 
-export const formatJobDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+// Nigerian time regardless of the phone's timezone (lib/dates.ts): "Tue, 4 Nov" and "9:30 AM".
+export const formatJobDate = (iso: string) => formatShortDate(iso);
 
-export const formatJobTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+export const formatJobTime = (iso: string) => formatTime(iso);
 
 // Postgres `raise exception` messages are written for end users; surface them as-is.
 export const errorMessage = (err: unknown, fallback = 'Something went wrong. Please try again.') =>

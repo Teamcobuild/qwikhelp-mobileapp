@@ -18,6 +18,7 @@ import { DatePickerModal } from '../../components/modals/DatePickerModal';
 import { SuccessBookingModal } from '../../components/modals/SuccessBookingModal';
 import { TimePickerModal } from '../../components/modals/TimePickerModal';
 import { SERVICES, serviceBySlug } from '../../constants/services';
+import { addDays, BOOKING, CalendarDay, firstBookableDay, formatDayShort, formatTime, sameDay, todayWat } from '../../lib/dates';
 import { useLocation } from '../../context/LocationContext';
 import { errorMessage, formatNaira, uploadJobPhoto } from '../../lib/broadcast';
 import { alertService } from '../../lib/AlertService';
@@ -38,10 +39,11 @@ export default function BookingScreen() {
   const [minFare, setMinFare] = useState<number>(service.minFare);
 
   const [subCategory, setSubCategory] = useState<string>('');
-  const [dateObj, setDateObj] = useState<Date | undefined>(undefined);
-  const [timeObj, setTimeObj] = useState<Date | undefined>(undefined);
-  const dateStr = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
-  const timeStr = timeObj ? timeObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+  // Calendar day + exact instant, both in Nigerian time (see lib/dates.ts).
+  const [day, setDay] = useState<CalendarDay | undefined>(undefined);
+  const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
+  const dateStr = day ? formatDayShort(day) : '';
+  const timeStr = scheduledAt ? formatTime(scheduledAt) : '';
 
   const [duration, setDuration] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -69,7 +71,7 @@ export default function BookingScreen() {
 
   const amountValue = parseInt(amount.replace(/\D/g, ''), 10) || 0;
   const isFormValid =
-    subCategory && dateObj && timeObj && duration && description.trim() && amountValue && landmark.trim() && address.trim();
+    subCategory && day && scheduledAt && duration && description.trim() && amountValue && landmark.trim() && address.trim();
 
   const handleAddPhoto = async () => {
     if (photos.length >= MAX_PHOTOS) return;
@@ -89,15 +91,15 @@ export default function BookingScreen() {
   };
 
   const handleSendOffer = async () => {
-    if (!isFormValid || !dateObj || !timeObj || !user) return;
+    if (!isFormValid || !scheduledAt || !user) return;
     if (amountValue < minFare) {
       return alertService.alert('Amount Too Low', `The minimum fare for ${service.name} is ${formatNaira(minFare)}.`);
     }
 
-    const scheduledAt = new Date(dateObj);
-    scheduledAt.setHours(timeObj.getHours(), timeObj.getMinutes(), 0, 0);
-    if (scheduledAt.getTime() < Date.now() - 5 * 60 * 1000) {
-      return alertService.alert('Pick a Future Time', 'Please choose a date and time that has not passed.');
+    // The form may have sat open for a while; re-check the slot is still far enough ahead.
+    if (scheduledAt.getTime() < Date.now() + 15 * 60 * 1000) {
+      setScheduledAt(undefined);
+      return alertService.alert('Time Has Passed', 'That time is too soon now. Please pick a later time.');
     }
 
     setSubmitting(true);
@@ -216,7 +218,7 @@ export default function BookingScreen() {
             <View className="flex-1">
               <Text className="text-gray-700 font-medium mb-2">Time</Text>
               <TouchableOpacity
-                onPress={() => setShowTimePicker(true)}
+                onPress={() => (day ? setShowTimePicker(true) : setShowDatePicker(true))}
                 className="border border-gray-200 rounded-xl px-4 py-3 bg-gray-50"
               >
                 <Text className={timeStr ? "text-gray-900" : "text-gray-400"}>
@@ -277,6 +279,10 @@ export default function BookingScreen() {
             <Text className="text-xs text-gray-400 mt-2">
               Labour only. Providers can accept or counter once. Min: {formatNaira(minFare)}
             </Text>
+            <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2 mt-2">
+              <Ionicons name="construct-outline" size={13} color="#6B7280" />
+              <Text className="text-[11px] text-gray-600 ml-1.5 flex-1">Paying for materials and parts in the app is coming soon.</Text>
+            </View>
           </View>
 
           {/* Landmark (public) */}
@@ -331,23 +337,32 @@ export default function BookingScreen() {
 
       <DatePickerModal
         visible={showDatePicker}
-        initialDate={dateObj}
+        initialDate={day ?? firstBookableDay()}
+        minDate={firstBookableDay()}
+        maxDate={addDays(todayWat(), BOOKING.maxDaysAhead)}
         onClose={() => setShowDatePicker(false)}
         onConfirm={(d) => {
-          setDateObj(d);
+          // A time chosen for another day no longer applies.
+          if (!sameDay(d, day)) setScheduledAt(undefined);
+          setDay(d);
           setShowDatePicker(false);
+          // Open the time slots next; wait for the date modal to finish closing (iOS drops overlapping modals).
+          setTimeout(() => setShowTimePicker(true), 350);
         }}
       />
 
-      <TimePickerModal
-        visible={showTimePicker}
-        initialTime={timeObj}
-        onClose={() => setShowTimePicker(false)}
-        onConfirm={(t) => {
-          setTimeObj(t);
-          setShowTimePicker(false);
-        }}
-      />
+      {day && (
+        <TimePickerModal
+          visible={showTimePicker}
+          day={day}
+          initialTime={scheduledAt}
+          onClose={() => setShowTimePicker(false)}
+          onConfirm={(at) => {
+            setScheduledAt(at);
+            setShowTimePicker(false);
+          }}
+        />
+      )}
 
       <SuccessBookingModal
         visible={!!createdJob}

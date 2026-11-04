@@ -3,6 +3,7 @@ import { Typography } from '@/components/ui/Typography';
 import { DOC_TYPES } from '@/constants/kyc';
 import { dobToIso, useKyc } from '@/context/KycContext';
 import { alertService } from '@/lib/AlertService';
+import { CalendarDay, dobToDay, formatDob, todayWat } from '@/lib/dates';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -18,6 +19,13 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+
+// Providers must be 18 or older.
+const DOB_MIN: CalendarDay = { year: 1940, month: 1, day: 1 };
+const DOB_MAX: CalendarDay = (() => {
+  const t = todayWat();
+  return { year: t.year - 18, month: t.month, day: t.month === 2 && t.day === 29 ? 28 : t.day };
+})();
 
 export default function NinIdUpload() {
   const router = useRouter();
@@ -36,9 +44,7 @@ export default function NinIdUpload() {
     savedKyc.idImageUri || null
   );
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [dateObj, setDateObj] = useState<Date>(() => {
-    return savedKyc.dob ? new Date(dobToIso(savedKyc.dob)) : new Date(1994, 7, 14);
-  });
+  const [dobDay, setDobDay] = useState<CalendarDay | undefined>(() => (savedKyc.dob ? dobToDay(savedKyc.dob) ?? undefined : undefined));
   const [pickerModalVisible, setPickerModalVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -318,17 +324,14 @@ export default function NinIdUpload() {
 
       <DatePickerModal
         visible={showDatePicker}
-        initialDate={dateObj}
-        allowPastDates={true}
-        maxDate={new Date()}
+        initialDate={dobDay ?? { ...DOB_MAX, year: DOB_MAX.year - 12 }}
+        minDate={DOB_MIN}
+        maxDate={DOB_MAX}
         title="Date of Birth"
         onClose={() => setShowDatePicker(false)}
-        onConfirm={(selectedDate) => {
-          setDateObj(selectedDate);
-          const day = String(selectedDate.getDate()).padStart(2, '0');
-          const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-          const year = selectedDate.getFullYear();
-          setDob(`${day} / ${month} / ${year}`);
+        onConfirm={(d) => {
+          setDobDay(d);
+          setDob(formatDob(d));
           setShowDatePicker(false);
         }}
       />

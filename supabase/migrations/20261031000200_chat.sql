@@ -385,7 +385,7 @@ begin
     returning id into cid;
     if cid is not null then
       perform private.system_message(cid,
-        'Price agreed at ' || private.naira(new.amount) || '. You can now chat. For your safety, keep all messages, calls and payments on QwikHelp — contact details are hidden automatically.');
+        'Price agreed at ' || private.naira(new.amount) || '. You can now chat. For your safety, keep all messages, calls and payments on QwikHelp.');
     end if;
     return new;
   end if;

@@ -4,6 +4,7 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { alertService } from '@/lib/AlertService';
 import { errorMessage } from '@/lib/broadcast';
 import { chatAvatar, ConversationListItem } from '@/lib/chat';
+import { formatRelativeShort } from '@/lib/dates';
 import { useSupabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,14 +13,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const when = (iso: string | null) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (d.toDateString() === new Date().toDateString()) {
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  }
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
+const when = (iso: string | null) => (iso ? formatRelativeShort(iso) : '');
 
 // Conversation list. Pushed as /messages (with a back button) and shown as the customer Messages tab.
 export function MessagesView({ showBack = false }: { showBack?: boolean }) {

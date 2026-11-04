@@ -56,6 +56,25 @@ export const TRADE_CATEGORIES: TradeCategory[] = [
     subtitle: 'Washing, ironing & garment care',
     icon: 'shirt',
   },
+  // Every customer service (constants/services.ts) needs a matching trade, or its bookings reach no one.
+  {
+    id: 'gardening',
+    name: 'Gardening & Landscaping',
+    subtitle: 'Lawn care, trimming, planting & upkeep',
+    icon: 'leaf',
+  },
+  {
+    id: 'companion',
+    name: 'Companion',
+    subtitle: 'Events, outings & casual company',
+    icon: 'people',
+  },
+  {
+    id: 'tour_guide',
+    name: 'Tour Guide',
+    subtitle: 'City, historical & adventure tours',
+    icon: 'map',
+  },
   // {
   //   id: 'mechanic',
   //   name: 'Auto Mechanic & Diagnostics',
