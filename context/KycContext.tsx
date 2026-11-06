@@ -91,9 +91,12 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
       if (pErr) throw pErr;
       if (kErr) throw kErr;
 
-      // Locked providers (approved/rejected) cannot insert; that's fine, they only view.
-      if (!k && ['draft', 'submitted', 'needs_changes'].includes(p.status)) {
-        const { error: insErr } = await supabase.from('kyc_submissions').insert({ user_id: userId });
+      // Only editable providers may insert (RLS); locked ones only view. Ignore duplicates because
+      // two overlapping reloads (mount + app resume) can both see the row missing.
+      if (!k && ['draft', 'needs_changes'].includes(p.status)) {
+        const { error: insErr } = await supabase
+          .from('kyc_submissions')
+          .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
         if (insErr) throw insErr;
       }
 

@@ -22,9 +22,11 @@
       "package": "com.qwikhelp.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -60,7 +62,8 @@
         "expo-image-picker",
         {
           "photosPermission": "QwikHelp needs your photos so you can add job pictures, your profile photo and chat photos.",
-          "cameraPermission": "QwikHelp uses the camera for your verification selfie, ID photos and job pictures."
+          "cameraPermission": "QwikHelp uses the camera for your verification selfie, ID photos and job pictures.",
+          "microphonePermission": false
         }
       ],
       [
